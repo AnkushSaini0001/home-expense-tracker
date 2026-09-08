@@ -1,0 +1,250 @@
+import React, { useState } from 'react';
+import { Calendar, Plus, Trash2, CheckCircle2, XCircle, AlertCircle, Eye } from 'lucide-react';
+
+export default function DailyLogSection({
+  logs = [],
+  provider,
+  currentMonth,
+  userRole,
+  onSaveLog,
+  onDeleteLog,
+}) {
+  const isAdmin = userRole === 'admin';
+
+  // Inline quick-log state
+  const today = new Date().toISOString().slice(0, 10);
+  const defaultDate = today.startsWith(currentMonth) ? today : `${currentMonth}-01`;
+
+  const [date, setDate] = useState(defaultDate);
+  const [quantity, setQuantity] = useState(provider?.billingType === 'monthly_fixed' ? 1 : 1.5);
+  const [status, setStatus] = useState('delivered');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isDailyUnit = provider?.billingType === 'daily_unit';
+  const unitLabel = provider?.unit || (isDailyUnit ? 'L' : 'Day');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!date) return;
+    setIsSubmitting(true);
+    try {
+      await onSaveLog({
+        providerId: provider._id,
+        date,
+        quantity: Number(quantity),
+        rate: provider.defaultRate,
+        status,
+        notes,
+      });
+      setNotes('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getStatusBadge = (logStatus) => {
+    switch (logStatus) {
+      case 'delivered':
+        return (
+          <span className="tag tag-emerald">
+            <CheckCircle2 size={12} /> {isDailyUnit ? 'Delivered' : 'Present'}
+          </span>
+        );
+      case 'extra':
+        return (
+          <span className="tag tag-indigo">
+            <AlertCircle size={12} /> Extra
+          </span>
+        );
+      case 'absent':
+        return (
+          <span className="tag tag-amber" style={{ color: '#f87171' }}>
+            <XCircle size={12} /> {isDailyUnit ? 'Skipped' : 'Absent'}
+          </span>
+        );
+      case 'holiday':
+        return (
+          <span className="tag tag-indigo">
+            <Calendar size={12} /> Leave / Holiday
+          </span>
+        );
+      default:
+        return <span className="tag tag-indigo">{logStatus}</span>;
+    }
+  };
+
+  return (
+    <div className="section-card">
+      <div className="section-header">
+        <div className="section-title-group">
+          <Calendar size={18} color="#818cf8" />
+          <h3 className="section-title">
+            {isDailyUnit ? 'Daily Deliveries' : 'Daily Attendance'}
+          </h3>
+          <span className="section-badge">{logs.length} logged</span>
+        </div>
+      </div>
+
+      {/* Quick Add Form for Admin, or View-Only notice for User */}
+      {isAdmin ? (
+        <form className="quick-entry-bar" onSubmit={handleSubmit}>
+          <div style={{ flex: '1 1 120px' }}>
+            <input
+              type="date"
+              className="form-input"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+
+          {isDailyUnit && (
+            <div style={{ flex: '1 1 90px' }}>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                className="form-input"
+                placeholder={`Qty (${unitLabel})`}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          <div style={{ flex: '1 1 120px' }}>
+            <select
+              className="form-select"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {isDailyUnit ? (
+                <>
+                  <option value="delivered">Delivered</option>
+                  <option value="extra">Extra</option>
+                  <option value="absent">Skipped / Absent</option>
+                </>
+              ) : (
+                <>
+                  <option value="delivered">Present</option>
+                  <option value="absent">Absent / Leave</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          <div style={{ flex: '2 1 130px' }}>
+            <input
+              type="text"
+              className="form-input"
+              placeholder={isDailyUnit ? "Note (optional)" : "Reason / Note (optional)"}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-sm"
+            disabled={isSubmitting}
+          >
+            <Plus size={14} />
+            <span>Add</span>
+          </button>
+        </form>
+      ) : (
+        <div
+          style={{
+            padding: '0.6rem 0.85rem',
+            marginBottom: '1rem',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.82rem',
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <Eye size={14} color="#34d399" />
+          <span>Read-only Mode: Daily entries can only be added or modified by an Admin.</span>
+        </div>
+      )}
+
+      {/* Daily Logs Table */}
+      {logs.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">📅</div>
+          <p>No entries recorded for this month yet.</p>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {isDailyUnit
+              ? 'Use the bar above to log daily deliveries.'
+              : 'Mark attendance or leaves using the bar above.'}
+          </span>
+        </div>
+      ) : (
+        <div className="table-container">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                {isDailyUnit && <th>Quantity</th>}
+                {isDailyUnit && <th>Rate</th>}
+                {isDailyUnit && <th>Total</th>}
+                <th>Status</th>
+                <th>Notes</th>
+                {isAdmin && <th style={{ width: '40px' }}></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => {
+                const dayNum = log.date.split('-')[2];
+                return (
+                  <tr key={log._id}>
+                    <td>
+                      <div className="date-badge">
+                        <span className="date-day">Day {dayNum}</span>
+                        <span className="date-full">{log.date}</span>
+                      </div>
+                    </td>
+                    {isDailyUnit && (
+                      <td style={{ fontWeight: 600 }}>
+                        {log.quantity} {unitLabel}
+                      </td>
+                    )}
+                    {isDailyUnit && <td>₹{log.rate}</td>}
+                    {isDailyUnit && (
+                      <td style={{ fontWeight: 700, color: '#34d399' }}>
+                        ₹{log.amount}
+                      </td>
+                    )}
+                    <td>{getStatusBadge(log.status)}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                      {log.notes || '—'}
+                    </td>
+                    {isAdmin && (
+                      <td>
+                        <button
+                          className="btn-danger-ghost"
+                          onClick={() => onDeleteLog(log._id)}
+                          title="Delete entry"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

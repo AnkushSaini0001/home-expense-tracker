@@ -1,0 +1,15 @@
+{
+  "name": "household-billing-tracker-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Household Billing & Advance Tracker for milkman, cook, and staff",
+  "scripts": {
+    "start:server": "cd server && npm start",
+    "start:client": "cd client && npm run dev",
+    "build:client": "cd client && npm run build"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "mongoose": "^9.9.5"
+  }
+}
