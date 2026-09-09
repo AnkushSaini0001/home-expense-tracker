@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
 export default function ConfirmModal({
@@ -10,24 +10,17 @@ export default function ConfirmModal({
   onConfirm,
   onClose,
 }) {
-  const [loading, setLoading] = useState(false);
-
   if (!isOpen) return null;
 
-  const handleConfirm = async () => {
-    setLoading(true);
-    try {
-      await onConfirm?.();
-      onClose?.();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleConfirm = () => {
+    const confirmFn = onConfirm;
+    onClose?.();
+    // Run after close so backdrop loader can take over
+    Promise.resolve().then(() => confirmFn?.());
   };
 
   return (
-    <div className="modal-overlay" onClick={loading ? undefined : onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-content confirm-modal"
         onClick={(e) => e.stopPropagation()}
@@ -48,7 +41,6 @@ export default function ConfirmModal({
           <button
             className="modal-close-btn"
             onClick={onClose}
-            disabled={loading}
             aria-label="Close"
           >
             <X size={18} />
@@ -66,7 +58,6 @@ export default function ConfirmModal({
             type="button"
             className="btn btn-secondary"
             onClick={onClose}
-            disabled={loading}
           >
             {cancelLabel}
           </button>
@@ -74,9 +65,8 @@ export default function ConfirmModal({
             type="button"
             className="btn btn-danger"
             onClick={handleConfirm}
-            disabled={loading}
           >
-            {loading ? 'Deleting...' : confirmLabel}
+            {confirmLabel}
           </button>
         </div>
       </div>

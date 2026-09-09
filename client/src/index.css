@@ -948,6 +948,60 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Backdrop Loader — 3x3 pulsing grid */
+.backdrop-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.backdrop-loader-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 56px;
+  height: 56px;
+}
+
+.backdrop-loader-dot {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #60a5fa;
+  animation: backdropDotPulse 1.05s ease-in-out infinite;
+  animation-delay: calc(var(--dot-i) * 0.08s);
+}
+
+@keyframes backdropDotPulse {
+  0%,
+  100% {
+    transform: scale(0.35);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

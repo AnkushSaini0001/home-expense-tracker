@@ -13,6 +13,7 @@ import ProviderModal from "./components/modals/ProviderModal";
 import DailyLogModal from "./components/modals/DailyLogModal";
 import ShareBillModal from "./components/modals/ShareBillModal";
 import ConfirmModal from "./components/modals/ConfirmModal";
+import BackdropLoader from "./components/BackdropLoader";
 
 import { api } from "./services/api";
 import {
@@ -61,6 +62,7 @@ export default function App() {
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
   const [isShareBillOpen, setIsShareBillOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Logout handler
   const handleLogout = useCallback(() => {
@@ -157,11 +159,24 @@ export default function App() {
 
   const isAdmin = user.role === "admin";
 
+  /** Backdrop loader only while add/delete mutate API is pending */
+  const withActionLoading = async (mutateFn) => {
+    setActionLoading(true);
+    try {
+      return await mutateFn();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const refreshDashboard = () =>
+    Promise.all([fetchData(), fetchProviderSummary()]);
+
   // Handlers
   const handleSaveLog = async (logData) => {
     if (!isAdmin) return;
-    await api.upsertDailyLog(logData);
-    await Promise.all([fetchData(), fetchProviderSummary()]);
+    await withActionLoading(() => api.upsertDailyLog(logData));
+    await refreshDashboard();
   };
 
   const handleDeleteLog = (id) => {
@@ -172,8 +187,8 @@ export default function App() {
         "Are you sure you want to delete this daily log entry? This action cannot be undone.",
       confirmLabel: "Delete Entry",
       onConfirm: async () => {
-        await api.deleteDailyLog(id);
-        await Promise.all([fetchData(), fetchProviderSummary()]);
+        await withActionLoading(() => api.deleteDailyLog(id));
+        await refreshDashboard();
       },
     });
   };
@@ -181,7 +196,7 @@ export default function App() {
   const handleRecordPayment = async (paymentData) => {
     if (!isAdmin) return;
     await api.recordPayment(paymentData);
-    await Promise.all([fetchData(), fetchProviderSummary()]);
+    await refreshDashboard();
   };
 
   const handleDeletePayment = (id) => {
@@ -192,8 +207,8 @@ export default function App() {
         "Are you sure you want to delete this payment record? This action cannot be undone.",
       confirmLabel: "Delete Payment",
       onConfirm: async () => {
-        await api.deletePayment(id);
-        await Promise.all([fetchData(), fetchProviderSummary()]);
+        await withActionLoading(() => api.deletePayment(id));
+        await refreshDashboard();
       },
     });
   };
@@ -210,7 +225,7 @@ export default function App() {
   const handleUpdateProvider = async (providerData) => {
     if (!isAdmin || !selectedProviderId) return;
     await api.updateProvider(selectedProviderId, providerData);
-    await Promise.all([fetchData(), fetchProviderSummary()]);
+    await refreshDashboard();
   };
 
   const handleDeleteProvider = () => {
@@ -221,7 +236,7 @@ export default function App() {
         "Are you sure you want to delete this provider? All their daily records and payment history will also be removed.",
       confirmLabel: "Delete Provider",
       onConfirm: async () => {
-        await api.deleteProvider(selectedProviderId);
+        await withActionLoading(() => api.deleteProvider(selectedProviderId));
         setSelectedProviderId(null);
         setProviderSummary(null);
         await fetchData();
@@ -442,6 +457,8 @@ export default function App() {
         onConfirm={confirmDialog?.onConfirm}
         onClose={() => setConfirmDialog(null)}
       />
+
+      <BackdropLoader isOpen={actionLoading} label="Processing..." />
     </div>
   );
 }
