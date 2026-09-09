@@ -29,7 +29,11 @@ app.use('/api/providers', providerRoutes);
 app.use('/api/daily-logs', dailyLogRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/billing', billingRoutes);
-
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Household Billing API is running',
+  });
+});
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
