@@ -1,4 +1,5 @@
 import React from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { HandCoins, Plus, Trash2, Wallet, Smartphone, Landmark } from 'lucide-react';
 
 const methodIcons = {
@@ -7,6 +8,55 @@ const methodIcons = {
   'Bank Transfer': Landmark,
 };
 
+function PaymentLedgerSkeleton({ isAdmin }) {
+  return (
+    <div className="section-card">
+      <div className="section-header">
+        <div className="section-title-group">
+          <Skeleton width={18} height={18} borderRadius={4} />
+          <Skeleton width={190} height={20} borderRadius={4} />
+          <Skeleton width={80} height={22} borderRadius={999} />
+        </div>
+        {isAdmin && <Skeleton width={140} height={34} borderRadius={8} />}
+      </div>
+
+      <div className="table-container">
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th><Skeleton width={36} height={12} /></th>
+              <th><Skeleton width={52} height={12} /></th>
+              <th><Skeleton width={40} height={12} /></th>
+              <th><Skeleton width={55} height={12} /></th>
+              <th><Skeleton width={90} height={12} /></th>
+              {isAdmin && <th style={{ width: '40px' }} />}
+            </tr>
+          </thead>
+          <tbody>
+            {[0, 1, 2].map((i) => (
+              <tr key={i}>
+                <td><Skeleton width={90} height={14} /></td>
+                <td><Skeleton width={55} height={16} /></td>
+                <td><Skeleton width={72} height={22} borderRadius={999} /></td>
+                <td><Skeleton width={60} height={14} /></td>
+                <td><Skeleton width="75%" height={12} /></td>
+                {isAdmin && (
+                  <td><Skeleton width={28} height={28} borderRadius={6} /></td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="ledger-total">
+        <Skeleton width={200} height={14} />
+        <Skeleton width={70} height={22} />
+      </div>
+    </div>
+  );
+}
+
 export default function PaymentLedger({
   payments = [],
   providerName,
@@ -14,8 +64,13 @@ export default function PaymentLedger({
   userRole,
   onOpenAddPayment,
   onDeletePayment,
+  loading = false,
 }) {
   const isAdmin = userRole === 'admin';
+
+  if (loading) {
+    return <PaymentLedgerSkeleton isAdmin={isAdmin} />;
+  }
 
   return (
     <div className="section-card">
@@ -102,22 +157,11 @@ export default function PaymentLedger({
             </table>
           </div>
 
-          <div
-            style={{
-              marginTop: '1rem',
-              padding: '0.75rem 1rem',
-              background: 'var(--bg-secondary)',
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <div className="ledger-total">
+            <span className="ledger-total-label">
               Total Advances Given This Month:
             </span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fbbf24' }}>
+            <span className="ledger-total-value">
               ₹{totalPaid.toLocaleString('en-IN')}
             </span>
           </div>

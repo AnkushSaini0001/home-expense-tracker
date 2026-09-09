@@ -1,5 +1,59 @@
 import React, { useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { Calendar, Plus, Trash2, CheckCircle2, XCircle, AlertCircle, Eye } from 'lucide-react';
+
+function DailyLogSectionSkeleton({ isAdmin }) {
+  return (
+    <div className="section-card">
+      <div className="section-header">
+        <div className="section-title-group">
+          <Skeleton width={18} height={18} borderRadius={4} />
+          <Skeleton width={140} height={20} borderRadius={4} />
+          <Skeleton width={72} height={22} borderRadius={999} />
+        </div>
+      </div>
+
+      {isAdmin ? (
+        <div className="quick-entry-bar">
+          <Skeleton height={38} borderRadius={8} style={{ flex: '1 1 120px' }} />
+          <Skeleton height={38} borderRadius={8} style={{ flex: '1 1 120px' }} />
+          <Skeleton height={38} borderRadius={8} style={{ flex: '2 1 130px' }} />
+          <Skeleton width={80} height={34} borderRadius={8} />
+        </div>
+      ) : (
+        <Skeleton height={40} borderRadius={8} style={{ marginBottom: '1rem' }} />
+      )}
+
+      <div className="table-container">
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th><Skeleton width={40} height={12} /></th>
+              <th><Skeleton width={50} height={12} /></th>
+              <th><Skeleton width={45} height={12} /></th>
+              {isAdmin && <th style={{ width: '40px' }} />}
+            </tr>
+          </thead>
+          <tbody>
+            {[0, 1, 2].map((i) => (
+              <tr key={i}>
+                <td>
+                  <Skeleton width={70} height={14} style={{ marginBottom: 4 }} />
+                  <Skeleton width={90} height={11} />
+                </td>
+                <td><Skeleton width={80} height={22} borderRadius={999} /></td>
+                <td><Skeleton width="70%" height={12} /></td>
+                {isAdmin && (
+                  <td><Skeleton width={28} height={28} borderRadius={6} /></td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default function DailyLogSection({
   logs = [],
@@ -8,6 +62,7 @@ export default function DailyLogSection({
   userRole,
   onSaveLog,
   onDeleteLog,
+  loading = false,
 }) {
   const isAdmin = userRole === 'admin';
 
@@ -23,6 +78,10 @@ export default function DailyLogSection({
 
   const isDailyUnit = provider?.billingType === 'daily_unit';
   const unitLabel = provider?.unit || (isDailyUnit ? 'L' : 'Day');
+
+  if (loading) {
+    return <DailyLogSectionSkeleton isAdmin={isAdmin} />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

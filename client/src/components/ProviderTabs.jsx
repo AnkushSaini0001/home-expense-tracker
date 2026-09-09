@@ -1,4 +1,5 @@
 import React from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { Milk, Utensils, Sparkles, Car, User, Plus } from 'lucide-react';
 
 const categoryIcons = {
@@ -15,8 +16,21 @@ export default function ProviderTabs({
   userRole,
   onSelectProvider,
   onAddNew,
+  loading = false,
 }) {
   const isAdmin = userRole === 'admin';
+
+  if (loading) {
+    return (
+      <div className="tabs-container">
+        <div className="provider-pills">
+          <Skeleton width={130} height={36} borderRadius={999} style={{ margin: '0.1rem' }} />
+          <Skeleton width={150} height={36} borderRadius={999} style={{ margin: '0.1rem' }} />
+        </div>
+        {isAdmin && <Skeleton width={128} height={34} borderRadius={8} />}
+      </div>
+    );
+  }
 
   return (
     <div className="tabs-container">

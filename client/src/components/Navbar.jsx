@@ -1,5 +1,14 @@
 import React from 'react';
-import { Home, ChevronLeft, ChevronRight, PlusCircle, HandCoins, LogOut, ShieldCheck, Eye } from 'lucide-react';
+import {
+  Home,
+  ChevronLeft,
+  ChevronRight,
+  PlusCircle,
+  HandCoins,
+  LogOut,
+  ShieldCheck,
+  Eye,
+} from 'lucide-react';
 
 export default function Navbar({
   currentMonth,
@@ -37,7 +46,7 @@ export default function Navbar({
         <div className="brand-icon">
           <Home size={24} />
         </div>
-        <div>
+        <div className="brand-text">
           <h1 className="brand-title">HomeLedger</h1>
           <p className="brand-subtitle">Household Billing & Advance Tracker</p>
         </div>
@@ -55,7 +64,6 @@ export default function Navbar({
         <span
           className="current-month-display"
           onClick={handleCurrentMonth}
-          style={{ cursor: 'pointer' }}
           title="Click to jump to current month"
         >
           {monthName}
@@ -71,54 +79,42 @@ export default function Navbar({
       </div>
 
       <div className="nav-actions">
-        {/* Role Badge and User info */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '0.4rem 0.75rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.82rem',
-          }}
-        >
+        <div className="user-chip">
           {isAdmin ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#818cf8', fontWeight: 600 }}>
-              <ShieldCheck size={14} /> Admin
+            <span className="user-chip-role admin">
+              <ShieldCheck size={14} />
+              <span className="btn-text">Admin</span>
             </span>
           ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#34d399', fontWeight: 600 }}>
-              <Eye size={14} /> View-Only
+            <span className="user-chip-role viewer">
+              <Eye size={14} />
+              <span className="btn-text">View-Only</span>
             </span>
           )}
-          <span style={{ color: 'var(--text-muted)' }}>|</span>
-          <span style={{ color: 'var(--text-secondary)' }}>{user?.username}</span>
+          <span className="user-chip-divider">|</span>
+          <span className="user-chip-name">{user?.username}</span>
         </div>
 
-        {/* Action buttons only visible to Admin */}
         {isAdmin && (
           <>
             <button className="btn btn-warning btn-sm" onClick={onOpenAddPayment}>
               <HandCoins size={15} />
-              <span>Record Advance</span>
+              <span className="btn-text">Record Advance</span>
             </button>
             <button className="btn btn-primary btn-sm" onClick={onOpenAddProvider}>
               <PlusCircle size={15} />
-              <span>Add Staff</span>
+              <span className="btn-text">Add Staff</span>
             </button>
           </>
         )}
 
-        {/* Logout Button */}
         <button
           className="btn btn-secondary btn-sm"
           onClick={onLogout}
           title="Sign out of HomeLedger"
         >
           <LogOut size={15} />
-          <span>Logout</span>
+          <span className="btn-text">Logout</span>
         </button>
       </div>
     </header>
