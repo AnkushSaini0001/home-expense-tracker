@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
-import { Home, Lock, User, ShieldCheck, Eye, ArrowRight, AlertCircle } from 'lucide-react';
-import { api } from '../services/api';
+import React, { useState } from "react";
+import {
+  Home,
+  Lock,
+  User,
+  ShieldCheck,
+  Eye,
+  ArrowRight,
+  AlertCircle,
+} from "lucide-react";
+import { api } from "../services/api";
 
 export default function LoginPage({ onLoginSuccess }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!username || !password) {
-      setError('Please enter both username and password');
+      setError("Please enter both username and password");
       return;
     }
 
@@ -21,14 +29,14 @@ export default function LoginPage({ onLoginSuccess }) {
     try {
       const res = await api.login(username, password);
       if (res.success && res.token) {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
         onLoginSuccess(res.user, res.token);
       } else {
-        setError(res.message || 'Login failed');
+        setError(res.message || "Login failed");
       }
     } catch (err) {
-      setError(err.message || 'Invalid username or password');
+      setError(err.message || "Invalid username or password");
     } finally {
       setLoading(false);
     }
@@ -36,12 +44,12 @@ export default function LoginPage({ onLoginSuccess }) {
 
   const handleQuickLogin = async (userType) => {
     setError(null);
-    let u = 'admin';
-    let p = 'admin123';
+    let u = "admin";
+    let p = "admin123";
 
-    if (userType === 'user') {
-      u = 'user';
-      p = 'user123';
+    if (userType === "user") {
+      u = "user";
+      p = "user123";
     }
 
     setUsername(u);
@@ -51,14 +59,14 @@ export default function LoginPage({ onLoginSuccess }) {
     try {
       const res = await api.login(u, p);
       if (res.success && res.token) {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
         onLoginSuccess(res.user, res.token);
       } else {
-        setError(res.message || 'Login failed');
+        setError(res.message || "Login failed");
       }
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -67,39 +75,42 @@ export default function LoginPage({ onLoginSuccess }) {
   return (
     <div
       style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.5rem',
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1.5rem",
       }}
     >
       <div
         className="section-card"
         style={{
-          width: '100%',
-          maxWidth: '440px',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
+          width: "100%",
+          maxWidth: "440px",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
         }}
       >
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+        <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
           <div
             className="brand-icon"
             style={{
-              margin: '0 auto 1rem',
-              width: '52px',
-              height: '52px',
-              borderRadius: 'var(--radius-lg)',
+              margin: "0 auto 1rem",
+              width: "52px",
+              height: "52px",
+              borderRadius: "var(--radius-lg)",
             }}
           >
             <Home size={28} />
           </div>
-          <h1 className="brand-title" style={{ fontSize: '1.6rem', marginBottom: '0.35rem' }}>
+          <h1
+            className="brand-title"
+            style={{ fontSize: "1.6rem", marginBottom: "0.35rem" }}
+          >
             HomeLedger
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
             Household Billing & Advance Tracker
           </p>
         </div>
@@ -107,16 +118,16 @@ export default function LoginPage({ onLoginSuccess }) {
         {error && (
           <div
             style={{
-              background: 'var(--color-danger-bg)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.75rem 1rem',
-              color: '#f87171',
-              fontSize: '0.88rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '1.25rem',
+              background: "var(--color-danger-bg)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: "var(--radius-md)",
+              padding: "0.75rem 1rem",
+              color: "#f87171",
+              fontSize: "0.88rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "1.25rem",
             }}
           >
             <AlertCircle size={16} />
@@ -128,11 +139,11 @@ export default function LoginPage({ onLoginSuccess }) {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Username</label>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: "relative" }}>
               <input
                 type="text"
                 className="form-input"
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: "2.5rem" }}
                 placeholder="Enter username (admin or user)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -142,11 +153,11 @@ export default function LoginPage({ onLoginSuccess }) {
               <User
                 size={16}
                 style={{
-                  position: 'absolute',
-                  left: '0.85rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
+                  position: "absolute",
+                  left: "0.85rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--text-muted)",
                 }}
               />
             </div>
@@ -154,11 +165,11 @@ export default function LoginPage({ onLoginSuccess }) {
 
           <div className="form-group">
             <label className="form-label">Password</label>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: "relative" }}>
               <input
                 type="password"
                 className="form-input"
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: "2.5rem" }}
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -167,11 +178,11 @@ export default function LoginPage({ onLoginSuccess }) {
               <Lock
                 size={16}
                 style={{
-                  position: 'absolute',
-                  left: '0.85rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
+                  position: "absolute",
+                  left: "0.85rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--text-muted)",
                 }}
               />
             </div>
@@ -180,16 +191,16 @@ export default function LoginPage({ onLoginSuccess }) {
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', marginTop: '0.5rem' }}
+            style={{ width: "100%", marginTop: "0.5rem" }}
             disabled={loading}
           >
-            {loading ? 'Authenticating...' : 'Sign In'}
+            {loading ? "Authenticating..." : "Sign In"}
             <ArrowRight size={16} />
           </button>
         </form>
 
         {/* Quick Demo Logins */}
-        <div style={{ marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
+        {/* <div style={{ marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
           <p
             style={{
               fontSize: '0.78rem',
@@ -249,7 +260,7 @@ export default function LoginPage({ onLoginSuccess }) {
               </span>
             </button>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
