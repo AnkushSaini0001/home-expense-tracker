@@ -100,47 +100,40 @@ export default function PaymentLedger({
       ) : (
         <>
           <div className="table-container">
-            <table className="custom-table">
+            <table className="custom-table payment-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Type</th>
-                  <th>Method</th>
-                  <th>Notes / Reason</th>
-                  {isAdmin && <th style={{ width: '40px' }}></th>}
+                  <th className="col-date">Date</th>
+                  <th className="col-amount">Amount</th>
+                  <th className="col-type">Type</th>
+                  <th className="col-method">Method</th>
+                  <th className="col-notes">Notes / Reason</th>
+                  {isAdmin && <th className="col-actions" aria-label="Actions" />}
                 </tr>
               </thead>
               <tbody>
                 {payments.map((p) => {
                   const MethodIcon = methodIcons[p.paymentMethod] || Wallet;
+                  const hasNote = Boolean(p.notes?.trim());
                   return (
                     <tr key={p._id}>
-                      <td style={{ fontWeight: 500 }}>{p.date}</td>
-                      <td style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.95rem' }}>
+                      <td className="col-date" style={{ fontWeight: 500 }}>{p.date}</td>
+                      <td className="col-amount" style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.95rem' }}>
                         ₹{p.amount.toLocaleString('en-IN')}
                       </td>
-                      <td>
+                      <td className="col-type">
                         <span className="tag tag-amber">{p.paymentType}</span>
                       </td>
-                      <td>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            fontSize: '0.8rem',
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
+                      <td className="col-method">
+                        <span className="method-cell">
                           <MethodIcon size={13} /> {p.paymentMethod}
                         </span>
                       </td>
-                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                        {p.notes || '—'}
+                      <td className={`col-notes${hasNote ? ' has-note' : ''}`}>
+                        {hasNote ? p.notes : '—'}
                       </td>
                       {isAdmin && (
-                        <td>
+                        <td className="col-actions">
                           <button
                             className="btn-danger-ghost"
                             onClick={() => onDeletePayment(p._id)}

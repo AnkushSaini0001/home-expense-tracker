@@ -671,6 +671,7 @@ body {
   overflow-y: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
+  -webkit-overflow-scrolling: touch;
 }
 
 .custom-table {
@@ -678,6 +679,7 @@ body {
   border-collapse: collapse;
   text-align: left;
   font-size: 0.88rem;
+  table-layout: auto;
 }
 
 .custom-table th {
@@ -703,9 +705,45 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* Shrink-wrap content columns; Notes fills leftover space */
+.custom-table .col-date,
+.custom-table .col-qty,
+.custom-table .col-rate,
+.custom-table .col-total,
+.custom-table .col-status,
+.custom-table .col-amount,
+.custom-table .col-type,
+.custom-table .col-method,
+.custom-table .col-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.custom-table .col-notes {
+  width: 1%;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.custom-table .col-notes.has-note {
+  width: auto;
+  min-width: 4rem;
+  max-width: 16rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.custom-table .col-actions {
+  text-align: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
 .date-badge {
   display: inline-flex;
   flex-direction: column;
+  white-space: nowrap;
 }
 
 .date-day {
@@ -716,6 +754,15 @@ body {
 .date-full {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.method-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* Modals */
@@ -1276,7 +1323,16 @@ body {
 
   .custom-table th,
   .custom-table td {
-    padding: 0.65rem 0.75rem;
+    padding: 0.55rem 0.6rem;
+  }
+
+  .custom-table .col-notes.has-note {
+    max-width: 7.5rem;
+    min-width: 0;
+  }
+
+  .custom-table .col-date .date-full {
+    font-size: 0.68rem;
   }
 
   .form-row {
@@ -1329,6 +1385,15 @@ body {
 @media (max-width: 480px) {
   .app-container {
     padding: 0.75rem 0.65rem 2rem;
+  }
+
+  .custom-table .col-notes.has-note {
+    max-width: 5.5rem;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    padding: 0.5rem 0.45rem;
   }
 
   .brand-subtitle {
