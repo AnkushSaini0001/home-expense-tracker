@@ -128,9 +128,13 @@ export default function DailyLogSection({
 
   const scopedCandidates = useMemo(() => {
     return candidates.filter((c) => {
+      const category = provider?.category;
+      if (!category) return true;
+      const excluded = c.excludedCategories || [];
+      if (excluded.includes(category)) return false;
       const cats = c.applicableCategories || [];
       if (!cats.length) return true;
-      return provider?.category ? cats.includes(provider.category) : true;
+      return cats.includes(category);
     });
   }, [candidates, provider?.category]);
 

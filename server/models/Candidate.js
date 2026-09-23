@@ -15,10 +15,18 @@ const candidateSchema = new mongoose.Schema(
     },
     /**
      * Provider categories this candidate can be billed for.
-     * Empty array = all facilities (Cook, Maid, Milkman, etc.).
+     * Empty array = all facilities (unless excluded).
      * e.g. ['Milkman'] means milk only (Reena).
      */
     applicableCategories: {
+      type: [String],
+      default: [],
+    },
+    /**
+     * Provider categories where this candidate must NOT appear.
+     * e.g. ['Cook'] hides Jatin from Cook.
+     */
+    excludedCategories: {
       type: [String],
       default: [],
     },
