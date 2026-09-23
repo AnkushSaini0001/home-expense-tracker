@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import {
   Milk,
@@ -12,6 +12,7 @@ import {
   Share2,
   Edit3,
   Trash2,
+  ChevronDown,
 } from 'lucide-react';
 
 const categoryIcons = {
@@ -78,6 +79,7 @@ export default function ProviderBanner({
   loading = false,
 }) {
   const isAdmin = userRole === 'admin';
+  const [sharesOpen, setSharesOpen] = useState(false);
 
   if (loading) {
     return <ProviderBannerSkeleton isAdmin={isAdmin} />;
@@ -92,6 +94,10 @@ export default function ProviderBanner({
   const rateLabel = isDailyUnit
     ? `₹${provider.defaultRate} per ${provider.unit || 'Unit'}`
     : `₹${provider.defaultRate.toLocaleString('en-IN')} / Month (Fixed)`;
+
+  const shareCount = Array.isArray(billing.candidateShares)
+    ? billing.candidateShares.length
+    : 0;
 
   return (
     <div className="provider-banner">
@@ -184,42 +190,61 @@ export default function ProviderBanner({
         </div>
       </div>
 
-      {Array.isArray(billing.candidateShares) && billing.candidateShares.length > 0 && (
-        <div className="candidate-share-panel">
-          <div className="candidate-share-heading">Per Candidate Share</div>
-          <div className="candidate-share-grid">
-            {billing.candidateShares.map((share) => (
-              <div className="candidate-share-card" key={String(share.candidateId)}>
-                <div className="candidate-share-name">{share.name}</div>
-                {isDailyUnit && (
-                  <div className="candidate-share-row qty">
-                    <span>Milk used</span>
-                    <strong>
-                      {Number(share.quantityShare || 0).toLocaleString('en-IN', {
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      {share.unit || provider.unit || 'Liter'}
-                    </strong>
+      {shareCount > 0 && (
+        <div className={`candidate-share-panel${sharesOpen ? ' is-open' : ''}`}>
+          <button
+            type="button"
+            className="candidate-share-toggle"
+            onClick={() => setSharesOpen((open) => !open)}
+            aria-expanded={sharesOpen}
+          >
+            <span className="candidate-share-heading">Per Candidate Share</span>
+            <span className="candidate-share-toggle-meta">
+              <span className="candidate-share-count">{shareCount}</span>
+              <ChevronDown
+                size={16}
+                className={`candidate-share-chevron${sharesOpen ? ' rotated' : ''}`}
+              />
+            </span>
+          </button>
+
+          {sharesOpen && (
+            <>
+              <div className="candidate-share-grid">
+                {billing.candidateShares.map((share) => (
+                  <div className="candidate-share-card" key={String(share.candidateId)}>
+                    <div className="candidate-share-name">{share.name}</div>
+                    {isDailyUnit && (
+                      <div className="candidate-share-row qty">
+                        <span>Milk used</span>
+                        <strong>
+                          {Number(share.quantityShare || 0).toLocaleString('en-IN', {
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          {share.unit || provider.unit || 'Liter'}
+                        </strong>
+                      </div>
+                    )}
+                    <div className="candidate-share-row">
+                      <span>Billed</span>
+                      <strong>₹{share.billedShare.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div className="candidate-share-row">
+                      <span>Paid credit</span>
+                      <strong>₹{share.paidShare.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div className="candidate-share-row due">
+                      <span>Due</span>
+                      <strong>₹{share.pendingShare.toLocaleString('en-IN')}</strong>
+                    </div>
                   </div>
-                )}
-                <div className="candidate-share-row">
-                  <span>Billed</span>
-                  <strong>₹{share.billedShare.toLocaleString('en-IN')}</strong>
-                </div>
-                <div className="candidate-share-row">
-                  <span>Paid credit</span>
-                  <strong>₹{share.paidShare.toLocaleString('en-IN')}</strong>
-                </div>
-                <div className="candidate-share-row due">
-                  <span>Due</span>
-                  <strong>₹{share.pendingShare.toLocaleString('en-IN')}</strong>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <p className="candidate-share-hint">
-            Empty selection = All. When Reena is included she gets 0.5 L first; remaining liters split among the other selected candidates. If she is not selected, the full quantity splits among those chosen only.
-          </p>
+              <p className="candidate-share-hint">
+                Empty selection = All. When Reena is included she gets 0.5 L first; remaining liters split among the other selected candidates. If she is not selected, the full quantity splits among those chosen only.
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

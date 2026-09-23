@@ -588,13 +588,62 @@ body {
   border-top: 1px solid var(--border-subtle);
 }
 
+.candidate-share-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+.candidate-share-toggle:hover .candidate-share-heading {
+  color: var(--text-primary);
+}
+
 .candidate-share-heading {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 0.75rem;
+  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.candidate-share-toggle-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.candidate-share-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+
+.candidate-share-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.candidate-share-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.candidate-share-panel.is-open .candidate-share-toggle {
+  margin-bottom: 0.75rem;
 }
 
 .candidate-share-grid {
