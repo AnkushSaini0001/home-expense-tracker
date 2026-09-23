@@ -27,8 +27,30 @@ export default function AppShell({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // Lock page scroll while mobile drawer is open
+  useEffect(() => {
+    if (!sidebarOpen || window.innerWidth >= 992) {
+      document.body.classList.remove('sidebar-drawer-open');
+      return undefined;
+    }
+
+    const scrollY = window.scrollY;
+    document.body.classList.add('sidebar-drawer-open');
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.classList.remove('sidebar-drawer-open');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [sidebarOpen]);
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarOpen ? ' sidebar-is-open' : ''}`}>
       <Sidebar
         providers={providers}
         selectedProviderId={selectedProviderId}
