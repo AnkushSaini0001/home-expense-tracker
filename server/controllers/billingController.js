@@ -100,8 +100,10 @@ const computeDailyUnitBilling = (logs) => {
  * Split provider bill across household candidates.
  * - Log with candidates[] → split amount/qty among those people only
  * - Log with empty candidates (All) → split equally among everyone
- * - daily_unit + fixedDailyQuantity (e.g. Reena 0.5L): take fixed liters first
- *   each delivery; remainder split among selected candidates (excluding fixed)
+ * - daily_unit + fixedDailyQuantity (e.g. Reena 0.5L): only when that person
+ *   is on the log (All, or explicitly selected). They take fixed liters first;
+ *   remainder goes to other selected candidates. If they are not selected,
+ *   they get nothing and the full qty splits among the chosen people.
  * - monthly_fixed salary → split totalBilled equally
  * - Advances paid → credited equally
  */
@@ -166,21 +168,29 @@ const computeCandidateShares = ({
       if (amount <= 0 && quantity <= 0) return;
 
       const assigned = getLogCandidateIds(log);
-      const selectedIds = assigned.length
-        ? assigned.filter((id) => byId[String(id)])
-        : shares.map((s) => s.candidateId);
+      const isAll = !assigned.length;
+      const selectedIds = isAll
+        ? shares.map((s) => s.candidateId)
+        : assigned.filter((id) => byId[String(id)]);
 
-      if (!fixedCandidates.length || quantity <= 0) {
+      if (!selectedIds.length) return;
+
+      // Fixed allotment (Reena 0.5L) only if they are part of this log
+      const fixedOnLog = fixedCandidates.filter((fc) =>
+        selectedIds.some((id) => String(id) === String(fc._id))
+      );
+
+      if (!fixedOnLog.length || quantity <= 0) {
         addSplit(amount, quantity, selectedIds);
         return;
       }
 
-      // Allocate fixed daily liters (e.g. Reena 0.5L) first, then split rest
       let qtyLeft = quantity;
       let amountLeft = amount;
       const ratePerUnit = quantity > 0 ? amount / quantity : 0;
+      const fixedOnLogIds = new Set(fixedOnLog.map((c) => String(c._id)));
 
-      fixedCandidates.forEach((fc) => {
+      fixedOnLog.forEach((fc) => {
         const takeQty = Math.min(Number(fc.fixedDailyQuantity) || 0, qtyLeft);
         if (takeQty <= 0) return;
         const takeAmount = ratePerUnit * takeQty;
@@ -189,13 +199,18 @@ const computeCandidateShares = ({
         amountLeft -= takeAmount;
       });
 
-      const restTargets = selectedIds.filter((id) => !fixedIdSet.has(String(id)));
+      const restTargets = selectedIds.filter(
+        (id) => !fixedOnLogIds.has(String(id))
+      );
       if (qtyLeft > 0 || amountLeft > 0) {
         if (restTargets.length) {
           addSplit(amountLeft, qtyLeft, restTargets);
         } else {
-          // Only fixed candidate(s) on the log — give remainder to them
-          addSplit(amountLeft, qtyLeft, fixedCandidates.map((c) => c._id));
+          addSplit(
+            amountLeft,
+            qtyLeft,
+            fixedOnLog.map((c) => c._id)
+          );
         }
       }
     });
@@ -351,7 +366,7 @@ ${billDetails}
 ${candidateBlock}----------------------------------
 ${pendingBalance >= 0 ? '⏳ *Balance Pending:*' : '✅ *Overpaid / Credit:*'} ₹${Math.abs(pendingBalance).toLocaleString('en-IN')}
 
-_Note: Untagged entries (All) are shared equally. Multi-selected candidates split that entry only._
+_Note: Untagged (All) includes Reena at 0.5 L/day then splits the rest. If Reena is not selected, full qty goes to chosen candidates only._
 _Generated via Household Billing Tracker_`;
 
     res.json({

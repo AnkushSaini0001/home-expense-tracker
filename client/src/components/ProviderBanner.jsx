@@ -218,7 +218,7 @@ export default function ProviderBanner({
             ))}
           </div>
           <p className="candidate-share-hint">
-            Empty selection = All. Reena gets 0.5 L every delivery; remaining liters split among the other selected candidates.
+            Empty selection = All. When Reena is included she gets 0.5 L first; remaining liters split among the other selected candidates. If she is not selected, the full quantity splits among those chosen only.
           </p>
         </div>
       )}
