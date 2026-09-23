@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import Skeleton from 'react-loading-skeleton';
+import React, { useState } from "react";
+import Skeleton from "react-loading-skeleton";
 import {
   Milk,
   Utensils,
@@ -13,7 +13,7 @@ import {
   Edit3,
   Trash2,
   ChevronDown,
-} from 'lucide-react';
+} from "lucide-react";
 
 const categoryIcons = {
   Milkman: Milk,
@@ -30,7 +30,12 @@ function ProviderBannerSkeleton({ isAdmin }) {
         <div className="banner-title-area">
           <Skeleton width={52} height={52} borderRadius={10} />
           <div>
-            <Skeleton width={180} height={26} borderRadius={6} style={{ marginBottom: 10 }} />
+            <Skeleton
+              width={180}
+              height={26}
+              borderRadius={6}
+              style={{ marginBottom: 10 }}
+            />
             <div className="provider-meta">
               <Skeleton width={64} height={22} borderRadius={999} />
               <Skeleton width={140} height={22} borderRadius={999} />
@@ -59,7 +64,12 @@ function ProviderBannerSkeleton({ isAdmin }) {
       <div className="math-breakdown">
         {[0, 1, 2].map((i) => (
           <div className="math-item" key={i}>
-            <Skeleton width="70%" height={12} borderRadius={4} style={{ marginBottom: 10 }} />
+            <Skeleton
+              width="70%"
+              height={12}
+              borderRadius={4}
+              style={{ marginBottom: 10 }}
+            />
             <Skeleton width="50%" height={28} borderRadius={6} />
           </div>
         ))}
@@ -78,7 +88,7 @@ export default function ProviderBanner({
   onDeleteProvider,
   loading = false,
 }) {
-  const isAdmin = userRole === 'admin';
+  const isAdmin = userRole === "admin";
   const [sharesOpen, setSharesOpen] = useState(false);
 
   if (loading) {
@@ -90,10 +100,10 @@ export default function ProviderBanner({
   const { provider, billing, monthFormatted } = summaryData;
   const CategoryIcon = categoryIcons[provider.category] || User;
 
-  const isDailyUnit = provider.billingType === 'daily_unit';
+  const isDailyUnit = provider.billingType === "daily_unit";
   const rateLabel = isDailyUnit
-    ? `₹${provider.defaultRate} per ${provider.unit || 'Unit'}`
-    : `₹${provider.defaultRate.toLocaleString('en-IN')} / Month (Fixed)`;
+    ? `₹${provider.defaultRate} per ${provider.unit || "Unit"}`
+    : `₹${provider.defaultRate.toLocaleString("en-IN")} / Month (Fixed)`;
 
   const shareCount = Array.isArray(billing.candidateShares)
     ? billing.candidateShares.length
@@ -112,7 +122,14 @@ export default function ProviderBanner({
               <span className="tag tag-indigo">{provider.category}</span>
               <span className="tag tag-emerald">{rateLabel}</span>
               {provider.phone && (
-                <span className="tag tag-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span
+                  className="tag tag-amber"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
                   <Phone size={12} /> {provider.phone}
                 </span>
               )}
@@ -123,18 +140,27 @@ export default function ProviderBanner({
         <div className="banner-actions">
           {isAdmin && (
             <>
-              <button className="btn btn-primary btn-sm" onClick={onOpenQuickLog}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={onOpenQuickLog}
+              >
                 <CalendarPlus size={15} />
-                <span>{isDailyUnit ? 'Log Entry' : 'Log Attendance'}</span>
+                <span>{isDailyUnit ? "Log Entry" : "Log Attendance"}</span>
               </button>
-              <button className="btn btn-warning btn-sm" onClick={onOpenAddPayment}>
+              <button
+                className="btn btn-warning btn-sm"
+                onClick={onOpenAddPayment}
+              >
                 <HandCoins size={15} />
                 <span>Give Advance</span>
               </button>
             </>
           )}
 
-          <button className="btn btn-secondary btn-sm" onClick={onOpenShareBill}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onOpenShareBill}
+          >
             <Share2 size={15} />
             <span>Bill Statement</span>
           </button>
@@ -166,32 +192,48 @@ export default function ProviderBanner({
       <div className="math-breakdown">
         <div className="math-item">
           <span className="math-label">
-            {isDailyUnit ? `Total Delivered (${billing.totalUnits} ${provider.unit || 'L'})` : 'Gross Monthly Salary'}
+            {isDailyUnit
+              ? `Total Delivered (${billing.totalUnits} ${
+                  provider.unit || "L"
+                })`
+              : "Gross Monthly Salary"}
           </span>
-          <span className="math-value">₹{billing.totalBilled.toLocaleString('en-IN')}</span>
+          <span className="math-value">
+            ₹{billing.totalBilled.toLocaleString("en-IN")}
+          </span>
         </div>
 
         <div className="math-item">
-          <span className="math-label">Advances Given ({summaryData.payments.length} times)</span>
+          <span className="math-label">
+            Advances Given ({summaryData.payments.length} times)
+          </span>
           <span className="math-value highlight-amber">
-            - ₹{billing.totalPaid.toLocaleString('en-IN')}
+            - ₹{billing.totalPaid.toLocaleString("en-IN")}
           </span>
         </div>
 
         <div className="math-item">
-          <span className="math-label">Net Pending Balance ({monthFormatted})</span>
+          <span className="math-label">
+            Net Pending Balance ({monthFormatted})
+          </span>
           <span
             className={`math-value ${
-              billing.pendingBalance > 0 ? 'highlight-rose' : 'highlight-emerald'
+              billing.pendingBalance > 0
+                ? "highlight-rose"
+                : "highlight-emerald"
             }`}
           >
-            {billing.pendingBalance >= 0 ? `₹${billing.pendingBalance.toLocaleString('en-IN')}` : `+₹${Math.abs(billing.pendingBalance).toLocaleString('en-IN')} (Credit)`}
+            {billing.pendingBalance >= 0
+              ? `₹${billing.pendingBalance.toLocaleString("en-IN")}`
+              : `+₹${Math.abs(billing.pendingBalance).toLocaleString(
+                  "en-IN"
+                )} (Credit)`}
           </span>
         </div>
       </div>
 
       {shareCount > 0 && (
-        <div className={`candidate-share-panel${sharesOpen ? ' is-open' : ''}`}>
+        <div className={`candidate-share-panel${sharesOpen ? " is-open" : ""}`}>
           <button
             type="button"
             className="candidate-share-toggle"
@@ -203,7 +245,9 @@ export default function ProviderBanner({
               <span className="candidate-share-count">{shareCount}</span>
               <ChevronDown
                 size={16}
-                className={`candidate-share-chevron${sharesOpen ? ' rotated' : ''}`}
+                className={`candidate-share-chevron${
+                  sharesOpen ? " rotated" : ""
+                }`}
               />
             </span>
           </button>
@@ -212,37 +256,49 @@ export default function ProviderBanner({
             <>
               <div className="candidate-share-grid">
                 {billing.candidateShares.map((share) => (
-                  <div className="candidate-share-card" key={String(share.candidateId)}>
+                  <div
+                    className="candidate-share-card"
+                    key={String(share.candidateId)}
+                  >
                     <div className="candidate-share-name">{share.name}</div>
                     {isDailyUnit && (
                       <div className="candidate-share-row qty">
-                        <span>Milk used</span>
+                        <span>Quantity</span>
                         <strong>
-                          {Number(share.quantityShare || 0).toLocaleString('en-IN', {
-                            maximumFractionDigits: 2,
-                          })}{' '}
-                          {share.unit || provider.unit || 'Liter'}
+                          {Number(share.quantityShare || 0).toLocaleString(
+                            "en-IN",
+                            {
+                              maximumFractionDigits: 2,
+                            }
+                          )}{" "}
+                          {share.unit || provider.unit || "Liter"}
                         </strong>
                       </div>
                     )}
                     <div className="candidate-share-row">
                       <span>Billed</span>
-                      <strong>₹{share.billedShare.toLocaleString('en-IN')}</strong>
+                      <strong>
+                        ₹{share.billedShare.toLocaleString("en-IN")}
+                      </strong>
                     </div>
                     <div className="candidate-share-row">
                       <span>Paid credit</span>
-                      <strong>₹{share.paidShare.toLocaleString('en-IN')}</strong>
+                      <strong>
+                        ₹{share.paidShare.toLocaleString("en-IN")}
+                      </strong>
                     </div>
                     <div className="candidate-share-row due">
                       <span>Due</span>
-                      <strong>₹{share.pendingShare.toLocaleString('en-IN')}</strong>
+                      <strong>
+                        ₹{share.pendingShare.toLocaleString("en-IN")}
+                      </strong>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="candidate-share-hint">
+              {/* <p className="candidate-share-hint">
                 Empty selection = All. When Reena is included she gets 0.5 L first; remaining liters split among the other selected candidates. If she is not selected, the full quantity splits among those chosen only.
-              </p>
+              </p> */}
             </>
           )}
         </div>
