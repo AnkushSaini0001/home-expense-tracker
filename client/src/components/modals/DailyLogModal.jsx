@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, CalendarPlus } from 'lucide-react';
 import CandidateMultiSelect from '../CandidateMultiSelect';
 
@@ -21,12 +21,25 @@ export default function DailyLogModal({
   const [candidateIds, setCandidateIds] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
+  const scopedCandidates = useMemo(() => {
+    return candidates.filter((c) => {
+      const cats = c.applicableCategories || [];
+      if (!cats.length) return true;
+      return provider?.category ? cats.includes(provider.category) : true;
+    });
+  }, [candidates, provider?.category]);
+
+  useEffect(() => {
     if (provider) {
       setRate(provider.defaultRate);
       setQuantity(provider.billingType === 'monthly_fixed' ? '1' : '1.5');
     }
   }, [provider]);
+
+  useEffect(() => {
+    const allowed = new Set(scopedCandidates.map((c) => String(c._id)));
+    setCandidateIds((prev) => prev.filter((id) => allowed.has(String(id))));
+  }, [scopedCandidates]);
 
   if (!isOpen || !provider) return null;
 
@@ -65,7 +78,9 @@ export default function DailyLogModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <CalendarPlus size={20} color="#818cf8" />
             <h3 className="modal-title">
-              {isDailyUnit ? `Log ${provider.name} Delivery` : `Log ${provider.name} Attendance`}
+              {isDailyUnit
+                ? `Log ${provider.name} Delivery`
+                : `Log ${provider.name} Attendance`}
             </h3>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
@@ -146,7 +161,7 @@ export default function DailyLogModal({
             <div className="form-group">
               <label className="form-label">Candidates</label>
               <CandidateMultiSelect
-                candidates={candidates}
+                candidates={scopedCandidates}
                 value={candidateIds}
                 onChange={setCandidateIds}
               />
@@ -157,7 +172,7 @@ export default function DailyLogModal({
                   marginTop: '0.35rem',
                 }}
               >
-                Leave empty for All (shared). Select one or more to split only among them.
+                Leave empty for All (shared). Reena appears only for Milkman.
               </p>
             </div>
 

@@ -2,6 +2,7 @@ import Provider from '../models/Provider.js';
 import DailyLog from '../models/DailyLog.js';
 import Payment from '../models/Payment.js';
 import Candidate from '../models/Candidate.js';
+import { filterCandidatesForCategory } from '../utils/candidateScope.js';
 
 /** Categories that get 2 free leave days per month */
 const FREE_LEAVE_CATEGORIES = new Set(['Cook', 'Maid']);
@@ -193,7 +194,8 @@ export const getProviderMonthlySummary = async (req, res) => {
       date: { $regex: `^${month}` },
     }).sort({ date: 1 });
 
-    const candidates = await Candidate.find({ status: 'active' }).sort({ name: 1 });
+    const allCandidates = await Candidate.find({ status: 'active' }).sort({ name: 1 });
+    const candidates = filterCandidatesForCategory(allCandidates, provider.category);
 
     // 3. Compute billing based on provider type
     let totalUnits = 0;

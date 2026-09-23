@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import {
   Calendar,
@@ -125,6 +125,19 @@ export default function DailyLogSection({
 
   const isDailyUnit = provider?.billingType === "daily_unit";
   const unitLabel = provider?.unit || (isDailyUnit ? "L" : "Day");
+
+  const scopedCandidates = useMemo(() => {
+    return candidates.filter((c) => {
+      const cats = c.applicableCategories || [];
+      if (!cats.length) return true;
+      return provider?.category ? cats.includes(provider.category) : true;
+    });
+  }, [candidates, provider?.category]);
+
+  useEffect(() => {
+    const allowed = new Set(scopedCandidates.map((c) => String(c._id)));
+    setCandidateIds((prev) => prev.filter((id) => allowed.has(String(id))));
+  }, [scopedCandidates]);
 
   if (loading) {
     return <DailyLogSectionSkeleton isAdmin={isAdmin} />;
@@ -269,7 +282,7 @@ export default function DailyLogSection({
           </div>
 
           <CandidateMultiSelect
-            candidates={candidates}
+            candidates={scopedCandidates}
             value={candidateIds}
             onChange={setCandidateIds}
           />

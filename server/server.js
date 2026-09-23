@@ -156,9 +156,15 @@ const autoSeedIfEmpty = async () => {
         { name: 'Ankush' },
         { name: 'Jatin' },
         { name: 'Anurag' },
-        { name: 'Reena' },
+        { name: 'Reena', applicableCategories: ['Milkman'] },
       ]);
       console.log('✅ Candidates seeded successfully!');
+    } else {
+      // Ensure Reena is milk-only (idempotent)
+      await Candidate.updateOne(
+        { name: /^reena$/i },
+        { $set: { applicableCategories: ['Milkman'] } }
+      );
     }
   } catch (err) {
     console.warn('⚠️ Seeding note:', err.message);

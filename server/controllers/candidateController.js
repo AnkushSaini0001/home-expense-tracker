@@ -1,12 +1,18 @@
 import Candidate from '../models/Candidate.js';
+import { filterCandidatesForCategory } from '../utils/candidateScope.js';
 
 // @desc    Get all candidates
 // @route   GET /api/candidates
+// @query   status, category (e.g. Milkman) — filters by applicableCategories
 export const getCandidates = async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, category } = req.query;
     const query = status ? { status } : {};
-    const candidates = await Candidate.find(query).sort({ name: 1 });
+    let candidates = await Candidate.find(query).sort({ name: 1 });
+
+    if (category) {
+      candidates = filterCandidatesForCategory(candidates, category);
+    }
 
     res.json({
       success: true,

@@ -1,8 +1,9 @@
 import DailyLog from '../models/DailyLog.js';
 import Provider from '../models/Provider.js';
 import Candidate from '../models/Candidate.js';
+import { isCandidateForCategory } from '../utils/candidateScope.js';
 
-const resolveCandidateIds = async (candidateIds) => {
+const resolveCandidateIds = async (candidateIds, providerCategory) => {
   const ids = Array.isArray(candidateIds)
     ? candidateIds
     : candidateIds
@@ -12,8 +13,10 @@ const resolveCandidateIds = async (candidateIds) => {
   const unique = [...new Set(ids.filter(Boolean).map(String))];
   if (!unique.length) return [];
 
-  const found = await Candidate.find({ _id: { $in: unique } }).select('_id');
-  return found.map((c) => c._id);
+  const found = await Candidate.find({ _id: { $in: unique } });
+  return found
+    .filter((c) => isCandidateForCategory(c, providerCategory))
+    .map((c) => c._id);
 };
 
 // @desc    Get daily logs for a provider
@@ -76,7 +79,7 @@ export const upsertDailyLog = async (req, res) => {
         : candidateId
           ? [candidateId]
           : [];
-    const candidates = await resolveCandidateIds(incomingIds);
+    const candidates = await resolveCandidateIds(incomingIds, provider.category);
 
     const appliedRate = rate !== undefined && rate !== null ? Number(rate) : provider.defaultRate;
     const appliedQty = quantity !== undefined ? Number(quantity) : 1;
@@ -136,7 +139,7 @@ export const bulkUpsertDailyLogs = async (req, res) => {
           : item.candidateId
             ? [item.candidateId]
             : [];
-      const candidates = await resolveCandidateIds(incomingIds);
+      const candidates = await resolveCandidateIds(incomingIds, provider.category);
       const appliedRate =
         item.rate !== undefined && item.rate !== null ? Number(item.rate) : provider.defaultRate;
       const appliedQty = item.quantity !== undefined ? Number(item.quantity) : 1;

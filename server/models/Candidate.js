@@ -13,6 +13,15 @@ const candidateSchema = new mongoose.Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    /**
+     * Provider categories this candidate can be billed for.
+     * Empty array = all facilities (Cook, Maid, Milkman, etc.).
+     * e.g. ['Milkman'] means milk only (Reena).
+     */
+    applicableCategories: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
