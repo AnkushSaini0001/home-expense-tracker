@@ -12,6 +12,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   FileText,
+  ClipboardList,
   X,
 } from 'lucide-react';
 
@@ -163,6 +164,20 @@ export default function Sidebar({
                   <FileText size={16} />
                 </span>
                 <span className="sidebar-menu-title">Generate Monthly Bill</span>
+              </NavLink>
+            </li>
+            <li className="sidebar-menu-item">
+              <NavLink
+                to="/provider-bill"
+                className={({ isActive }) =>
+                  `sidebar-nav-link${isActive ? ' is-active' : ''}`
+                }
+                onClick={() => onClose?.()}
+              >
+                <span className="sidebar-menu-icon">
+                  <ClipboardList size={16} />
+                </span>
+                <span className="sidebar-menu-title">Provider Monthly Details</span>
               </NavLink>
             </li>
           </ul>

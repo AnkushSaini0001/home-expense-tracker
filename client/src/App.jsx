@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import GenerateMonthlyBillPage from './pages/GenerateMonthlyBillPage';
+import GenerateProviderBillPage from './pages/GenerateProviderBillPage';
 import LoginPage from './components/LoginPage';
 
 import RecordPaymentModal from './components/modals/RecordPaymentModal';
@@ -295,6 +296,15 @@ export default function App() {
             path="/generate-bill"
             element={
               <GenerateMonthlyBillPage
+                currentMonth={currentMonth}
+                monthName={monthName}
+              />
+            }
+          />
+          <Route
+            path="/provider-bill"
+            element={
+              <GenerateProviderBillPage
                 currentMonth={currentMonth}
                 monthName={monthName}
               />

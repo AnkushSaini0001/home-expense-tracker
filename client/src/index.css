@@ -2461,3 +2461,26 @@ body {
 .bill-slip-status-skeleton {
   min-height: 48px;
 }
+
+.bill-filters-grid-single {
+  grid-template-columns: 1fr auto;
+}
+
+@media (max-width: 768px) {
+  .bill-filters-grid-single {
+    grid-template-columns: 1fr;
+  }
+}
+
+.provider-month-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.provider-detail-heading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
