@@ -268,9 +268,9 @@ export default function GenerateMonthlyBillPage({ currentMonth, monthName }) {
             <FileText size={40} className="bill-empty-icon" />
             <h3>No bill slip yet</h3>
             <p>
-              Select a candidate, keep Provider as All (or pick one), then
-              generate the slip to copy or share.
-            </p>
+            Select a candidate, keep Provider as All (or pick one), then
+            generate the slip to copy or share.
+          </p>
           </div>
         )}
 

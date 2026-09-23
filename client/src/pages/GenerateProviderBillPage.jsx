@@ -5,11 +5,14 @@ import {
   ClipboardList,
   RefreshCw,
   Share2,
-  Copy,
-  Check,
+  Download,
   Phone,
 } from 'lucide-react';
 import { api } from '../services/api';
+import {
+  buildProviderMonthlyExcel,
+  downloadWorkbook,
+} from '../utils/excelExport';
 
 function FiltersSkeleton() {
   return (
@@ -125,7 +128,6 @@ export default function GenerateProviderBillPage({ currentMonth, monthName }) {
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,7 +161,6 @@ export default function GenerateProviderBillPage({ currentMonth, monthName }) {
     try {
       setGenerating(true);
       setError(null);
-      setCopied(false);
       setBill(null);
       const res = await api.getProviderMonthlySummary(providerId, currentMonth);
       setBill(res.data);
@@ -173,7 +174,6 @@ export default function GenerateProviderBillPage({ currentMonth, monthName }) {
 
   useEffect(() => {
     setBill(null);
-    setCopied(false);
   }, [providerId, currentMonth]);
 
   const shareText = useMemo(
@@ -181,14 +181,13 @@ export default function GenerateProviderBillPage({ currentMonth, monthName }) {
     [bill]
   );
 
-  const handleCopy = async () => {
-    if (!shareText) return;
+  const handleDownloadExcel = () => {
+    if (!bill) return;
     try {
-      await navigator.clipboard.writeText(shareText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setError('Could not copy to clipboard');
+      const { fileName, sheets } = buildProviderMonthlyExcel(bill);
+      downloadWorkbook(sheets, fileName);
+    } catch (err) {
+      setError(err.message || 'Failed to download Excel file');
     }
   };
 
@@ -223,8 +222,8 @@ export default function GenerateProviderBillPage({ currentMonth, monthName }) {
             Provider Monthly Details
           </h2>
           <p className="bill-page-subtitle">
-            View full monthly records for one provider for {monthName}. Copy or
-            send details
+            View full monthly records for one provider for {monthName}. Download
+            Excel or send details
             {selectedProvider?.phone ? ` to ${selectedProvider.phone}` : ''}.
           </p>
         </div>
@@ -315,10 +314,10 @@ export default function GenerateProviderBillPage({ currentMonth, monthName }) {
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={handleCopy}
+                    onClick={handleDownloadExcel}
                   >
-                    {copied ? <Check size={15} /> : <Copy size={15} />}
-                    {copied ? 'Copied' : 'Copy Details'}
+                    <Download size={15} />
+                    Download Excel
                   </button>
                   <button
                     type="button"
