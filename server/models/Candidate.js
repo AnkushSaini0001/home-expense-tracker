@@ -30,6 +30,16 @@ const candidateSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    /**
+     * For daily_unit (milk): take this many liters from every delivery first.
+     * Remainder is split among other selected candidates.
+     * e.g. Reena → 0.5
+     */
+    fixedDailyQuantity: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
   },
   {
     timestamps: true,

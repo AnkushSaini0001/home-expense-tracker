@@ -218,7 +218,7 @@ export default function ProviderBanner({
             ))}
           </div>
           <p className="candidate-share-hint">
-            Empty selection = All (shared equally). Multi-select splits that entry among chosen candidates only.
+            Empty selection = All. Reena gets 0.5 L every delivery; remaining liters split among the other selected candidates.
           </p>
         </div>
       )}

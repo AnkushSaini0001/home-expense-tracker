@@ -156,14 +156,23 @@ const autoSeedIfEmpty = async () => {
         { name: 'Ankush' },
         { name: 'Jatin', excludedCategories: ['Cook'] },
         { name: 'Anurag' },
-        { name: 'Reena', applicableCategories: ['Milkman'] },
+        {
+          name: 'Reena',
+          applicableCategories: ['Milkman'],
+          fixedDailyQuantity: 0.5,
+        },
       ]);
       console.log('✅ Candidates seeded successfully!');
     } else {
       // Ensure candidate facility rules (idempotent)
       await Candidate.updateOne(
         { name: /^reena$/i },
-        { $set: { applicableCategories: ['Milkman'] } }
+        {
+          $set: {
+            applicableCategories: ['Milkman'],
+            fixedDailyQuantity: 0.5,
+          },
+        }
       );
       await Candidate.updateOne(
         { name: /^jatin$/i },

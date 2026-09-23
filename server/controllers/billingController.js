@@ -100,6 +100,8 @@ const computeDailyUnitBilling = (logs) => {
  * Split provider bill across household candidates.
  * - Log with candidates[] → split amount/qty among those people only
  * - Log with empty candidates (All) → split equally among everyone
+ * - daily_unit + fixedDailyQuantity (e.g. Reena 0.5L): take fixed liters first
+ *   each delivery; remainder split among selected candidates (excluding fixed)
  * - monthly_fixed salary → split totalBilled equally
  * - Advances paid → credited equally
  */
@@ -126,6 +128,18 @@ const computeCandidateShares = ({
 
   const byId = Object.fromEntries(shares.map((s) => [String(s.candidateId), s]));
 
+  const fixedCandidates = candidates.filter(
+    (c) => Number(c.fixedDailyQuantity) > 0
+  );
+  const fixedIdSet = new Set(fixedCandidates.map((c) => String(c._id)));
+
+  const credit = (id, amount, quantity) => {
+    const row = byId[String(id)];
+    if (!row) return;
+    row.billedShare += amount;
+    row.quantityShare += quantity;
+  };
+
   const addSplit = (amount, quantity, targetIds = null) => {
     const targets = targetIds?.length
       ? targetIds.filter((id) => byId[String(id)])
@@ -133,10 +147,7 @@ const computeCandidateShares = ({
     if (!targets.length) return;
     const eachAmount = amount / targets.length;
     const eachQty = quantity / targets.length;
-    targets.forEach((id) => {
-      byId[String(id)].billedShare += eachAmount;
-      byId[String(id)].quantityShare += eachQty;
-    });
+    targets.forEach((id) => credit(id, eachAmount, eachQty));
   };
 
   const getLogCandidateIds = (log) => {
@@ -153,8 +164,40 @@ const computeCandidateShares = ({
       const amount = Number(log.amount) || 0;
       const quantity = isBillable ? Number(log.quantity) || 0 : 0;
       if (amount <= 0 && quantity <= 0) return;
+
       const assigned = getLogCandidateIds(log);
-      addSplit(amount, quantity, assigned.length ? assigned : null);
+      const selectedIds = assigned.length
+        ? assigned.filter((id) => byId[String(id)])
+        : shares.map((s) => s.candidateId);
+
+      if (!fixedCandidates.length || quantity <= 0) {
+        addSplit(amount, quantity, selectedIds);
+        return;
+      }
+
+      // Allocate fixed daily liters (e.g. Reena 0.5L) first, then split rest
+      let qtyLeft = quantity;
+      let amountLeft = amount;
+      const ratePerUnit = quantity > 0 ? amount / quantity : 0;
+
+      fixedCandidates.forEach((fc) => {
+        const takeQty = Math.min(Number(fc.fixedDailyQuantity) || 0, qtyLeft);
+        if (takeQty <= 0) return;
+        const takeAmount = ratePerUnit * takeQty;
+        credit(fc._id, takeAmount, takeQty);
+        qtyLeft -= takeQty;
+        amountLeft -= takeAmount;
+      });
+
+      const restTargets = selectedIds.filter((id) => !fixedIdSet.has(String(id)));
+      if (qtyLeft > 0 || amountLeft > 0) {
+        if (restTargets.length) {
+          addSplit(amountLeft, qtyLeft, restTargets);
+        } else {
+          // Only fixed candidate(s) on the log — give remainder to them
+          addSplit(amountLeft, qtyLeft, fixedCandidates.map((c) => c._id));
+        }
+      }
     });
   } else {
     addSplit(totalBilled, 0, null);
