@@ -180,13 +180,39 @@ const autoSeedIfEmpty = async () => {
 const startServer = async () => {
   await connectDB();
 
-  // Migrate daily-log unique index: provider+date → provider+date+candidate
+  // Migrate daily-log indexes back to provider+date unique; support candidates[]
   try {
-    await DailyLog.collection.dropIndex('provider_1_date_1');
+    await DailyLog.collection.dropIndex('provider_1_date_1_candidate_1');
   } catch {
     // Index may already be removed
   }
-  await DailyLog.syncIndexes();
+  try {
+    // Re-sync unique provider+date
+    await DailyLog.syncIndexes();
+  } catch (err) {
+    console.warn('DailyLog index sync note:', err.message);
+  }
+
+  // Migrate legacy single `candidate` → `candidates[]`
+  try {
+    const legacyLogs = await DailyLog.find({
+      candidate: { $ne: null },
+      $or: [{ candidates: { $exists: false } }, { candidates: { $size: 0 } }],
+    }).select('_id candidate');
+
+    for (const doc of legacyLogs) {
+      await DailyLog.updateOne(
+        { _id: doc._id },
+        { $set: { candidates: [doc.candidate] }, $unset: { candidate: 1 } }
+      );
+    }
+    await DailyLog.updateMany(
+      { candidate: { $exists: true } },
+      { $unset: { candidate: 1 } }
+    );
+  } catch (err) {
+    console.warn('Candidate field migration note:', err.message);
+  }
 
   await autoSeedIfEmpty();
 

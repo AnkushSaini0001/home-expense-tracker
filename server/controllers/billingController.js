@@ -97,9 +97,9 @@ const computeDailyUnitBilling = (logs) => {
 
 /**
  * Split provider bill across household candidates.
- * - Log with candidate → full amount to that person
- * - Log without candidate (All) → split equally
- * - monthly_fixed salary → split totalBilled equally (shared household cost)
+ * - Log with candidates[] → split amount among those people only
+ * - Log with empty candidates (All) → split equally among everyone
+ * - monthly_fixed salary → split totalBilled equally
  * - Advances paid → credited equally
  */
 const computeCandidateShares = ({
@@ -122,26 +122,34 @@ const computeCandidateShares = ({
 
   const byId = Object.fromEntries(shares.map((s) => [String(s.candidateId), s]));
 
-  const addEqual = (amount) => {
-    const each = amount / n;
-    shares.forEach((s) => {
-      s.billedShare += each;
+  const addEqual = (amount, targetIds = null) => {
+    const targets = targetIds?.length
+      ? targetIds.filter((id) => byId[String(id)])
+      : shares.map((s) => s.candidateId);
+    if (!targets.length) return;
+    const each = amount / targets.length;
+    targets.forEach((id) => {
+      byId[String(id)].billedShare += each;
     });
+  };
+
+  const getLogCandidateIds = (log) => {
+    if (Array.isArray(log.candidates) && log.candidates.length > 0) {
+      return log.candidates.map((c) => c?._id || c).filter(Boolean);
+    }
+    // Legacy single-candidate field
+    const legacy = log.candidate?._id || log.candidate;
+    return legacy ? [legacy] : [];
   };
 
   if (billingType === 'daily_unit') {
     logs.forEach((log) => {
       const amount = Number(log.amount) || 0;
       if (amount <= 0) return;
-      const candId = log.candidate?._id || log.candidate;
-      if (candId && byId[String(candId)]) {
-        byId[String(candId)].billedShare += amount;
-      } else {
-        addEqual(amount);
-      }
+      const assigned = getLogCandidateIds(log);
+      addEqual(amount, assigned.length ? assigned : null);
     });
   } else {
-    // Shared monthly salary / wage after leave deductions
     addEqual(totalBilled);
   }
 
@@ -176,7 +184,7 @@ export const getProviderMonthlySummary = async (req, res) => {
       provider: providerId,
       date: { $regex: `^${month}` },
     })
-      .populate('candidate', 'name status')
+      .populate('candidates', 'name status')
       .sort({ date: 1 });
 
     // 2. Fetch payments for the month
@@ -285,7 +293,7 @@ ${billDetails}
 ${candidateBlock}----------------------------------
 ${pendingBalance >= 0 ? '⏳ *Balance Pending:*' : '✅ *Overpaid / Credit:*'} ₹${Math.abs(pendingBalance).toLocaleString('en-IN')}
 
-_Note: Untagged entries are shared equally by all candidates._
+_Note: Untagged entries (All) are shared equally. Multi-selected candidates split that entry only._
 _Generated via Household Billing Tracker_`;
 
     res.json({

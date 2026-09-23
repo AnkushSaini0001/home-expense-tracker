@@ -2,10 +2,18 @@ import DailyLog from '../models/DailyLog.js';
 import Provider from '../models/Provider.js';
 import Candidate from '../models/Candidate.js';
 
-const resolveCandidateId = async (candidateId) => {
-  if (!candidateId) return null;
-  const exists = await Candidate.findById(candidateId).select('_id');
-  return exists ? exists._id : null;
+const resolveCandidateIds = async (candidateIds) => {
+  const ids = Array.isArray(candidateIds)
+    ? candidateIds
+    : candidateIds
+      ? [candidateIds]
+      : [];
+
+  const unique = [...new Set(ids.filter(Boolean).map(String))];
+  if (!unique.length) return [];
+
+  const found = await Candidate.find({ _id: { $in: unique } }).select('_id');
+  return found.map((c) => c._id);
 };
 
 // @desc    Get daily logs for a provider
@@ -29,7 +37,7 @@ export const getDailyLogs = async (req, res) => {
       provider: providerId,
       ...dateQuery,
     })
-      .populate('candidate', 'name status')
+      .populate('candidates', 'name status')
       .sort({ date: 1 });
 
     res.json({ success: true, count: logs.length, data: logs });
@@ -42,7 +50,16 @@ export const getDailyLogs = async (req, res) => {
 // @route   POST /api/daily-logs
 export const upsertDailyLog = async (req, res) => {
   try {
-    const { providerId, date, quantity, rate, status, notes, candidateId } = req.body;
+    const {
+      providerId,
+      date,
+      quantity,
+      rate,
+      status,
+      notes,
+      candidateIds,
+      candidateId, // legacy single-select support
+    } = req.body;
 
     if (!providerId || !date) {
       return res.status(400).json({ success: false, message: 'providerId and date are required' });
@@ -53,7 +70,13 @@ export const upsertDailyLog = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Provider not found' });
     }
 
-    const candidate = await resolveCandidateId(candidateId);
+    const incomingIds =
+      candidateIds !== undefined
+        ? candidateIds
+        : candidateId
+          ? [candidateId]
+          : [];
+    const candidates = await resolveCandidateIds(incomingIds);
 
     const appliedRate = rate !== undefined && rate !== null ? Number(rate) : provider.defaultRate;
     const appliedQty = quantity !== undefined ? Number(quantity) : 1;
@@ -65,21 +88,24 @@ export const upsertDailyLog = async (req, res) => {
         : Number((appliedQty * appliedRate).toFixed(2));
 
     const log = await DailyLog.findOneAndUpdate(
-      { provider: providerId, date, candidate },
+      { provider: providerId, date },
       {
-        provider: providerId,
-        date,
-        candidate,
-        quantity: appliedQty,
-        rate: appliedRate,
-        amount: calculatedAmount,
-        status: appliedStatus,
-        notes: notes || '',
+        $set: {
+          provider: providerId,
+          date,
+          candidates,
+          quantity: appliedQty,
+          rate: appliedRate,
+          amount: calculatedAmount,
+          status: appliedStatus,
+          notes: notes || '',
+        },
+        $unset: { candidate: 1 },
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    await log.populate('candidate', 'name status');
+    await log.populate('candidates', 'name status');
 
     res.status(200).json({ success: true, data: log });
   } catch (error) {
@@ -104,7 +130,13 @@ export const bulkUpsertDailyLogs = async (req, res) => {
 
     const operations = [];
     for (const item of logs) {
-      const candidate = await resolveCandidateId(item.candidateId);
+      const incomingIds =
+        item.candidateIds !== undefined
+          ? item.candidateIds
+          : item.candidateId
+            ? [item.candidateId]
+            : [];
+      const candidates = await resolveCandidateIds(incomingIds);
       const appliedRate =
         item.rate !== undefined && item.rate !== null ? Number(item.rate) : provider.defaultRate;
       const appliedQty = item.quantity !== undefined ? Number(item.quantity) : 1;
@@ -116,18 +148,19 @@ export const bulkUpsertDailyLogs = async (req, res) => {
 
       operations.push({
         updateOne: {
-          filter: { provider: providerId, date: item.date, candidate },
+          filter: { provider: providerId, date: item.date },
           update: {
             $set: {
               provider: providerId,
               date: item.date,
-              candidate,
+              candidates,
               quantity: appliedQty,
               rate: appliedRate,
               amount: calculatedAmount,
               status: appliedStatus,
               notes: item.notes || '',
             },
+            $unset: { candidate: 1 },
           },
           upsert: true,
         },

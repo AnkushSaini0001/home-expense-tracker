@@ -207,7 +207,7 @@ export default function ProviderBanner({
             ))}
           </div>
           <p className="candidate-share-hint">
-            Untagged entries are shared equally. Tagged entries are billed only to that candidate.
+            Empty selection = All (shared equally). Multi-select splits that entry among chosen candidates only.
           </p>
         </div>
       )}

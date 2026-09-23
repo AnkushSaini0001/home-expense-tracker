@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, CalendarPlus } from 'lucide-react';
+import CandidateMultiSelect from '../CandidateMultiSelect';
 
 export default function DailyLogModal({
   isOpen,
@@ -17,7 +18,7 @@ export default function DailyLogModal({
   const [rate, setRate] = useState(provider?.defaultRate || 0);
   const [status, setStatus] = useState('delivered');
   const [notes, setNotes] = useState('');
-  const [candidateId, setCandidateId] = useState('');
+  const [candidateIds, setCandidateIds] = useState([]);
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
@@ -45,9 +46,9 @@ export default function DailyLogModal({
         rate: Number(rate),
         status,
         notes,
-        candidateId: candidateId || null,
+        candidateIds,
       });
-      setCandidateId('');
+      setCandidateIds([]);
       setNotes('');
       onClose();
     } catch (err) {
@@ -143,19 +144,12 @@ export default function DailyLogModal({
             )}
 
             <div className="form-group">
-              <label className="form-label">Candidate</label>
-              <select
-                className="form-select"
-                value={candidateId}
-                onChange={(e) => setCandidateId(e.target.value)}
-              >
-                <option value="">All Candidates (shared)</option>
-                {candidates.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <label className="form-label">Candidates</label>
+              <CandidateMultiSelect
+                candidates={candidates}
+                value={candidateIds}
+                onChange={setCandidateIds}
+              />
               <p
                 style={{
                   fontSize: '0.75rem',
@@ -163,7 +157,7 @@ export default function DailyLogModal({
                   marginTop: '0.35rem',
                 }}
               >
-                Leave as All if this cost is shared by everyone.
+                Leave empty for All (shared). Select one or more to split only among them.
               </p>
             </div>
 

@@ -14,15 +14,15 @@ const dailyLogSchema = new mongoose.Schema(
       index: true,
     },
     /**
-     * Optional household member this entry belongs to.
-     * null / missing = shared by all candidates (split equally on bill).
+     * Household members this entry belongs to.
+     * Empty array = shared by all candidates (split equally on bill).
      */
-    candidate: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Candidate',
-      default: null,
-      index: true,
-    },
+    candidates: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Candidate',
+      },
+    ],
     quantity: {
       type: Number,
       default: 1,
@@ -54,10 +54,7 @@ const dailyLogSchema = new mongoose.Schema(
   }
 );
 
-// One log per provider + date + candidate (null candidate = shared "All")
-dailyLogSchema.index(
-  { provider: 1, date: 1, candidate: 1 },
-  { unique: true }
-);
+// One log per provider per date
+dailyLogSchema.index({ provider: 1, date: 1 }, { unique: true });
 
 export default mongoose.model('DailyLog', dailyLogSchema);
