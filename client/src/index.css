@@ -582,6 +582,64 @@ body {
   color: #34d399;
 }
 
+.candidate-share-panel {
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.candidate-share-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.candidate-share-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.candidate-share-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+}
+
+.candidate-share-name {
+  font-weight: 700;
+  margin-bottom: 0.55rem;
+  color: var(--text-primary);
+}
+
+.candidate-share-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.candidate-share-row strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.candidate-share-row.due strong {
+  color: #fb7185;
+}
+
+.candidate-share-hint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 /* Two Column Layout (Daily Logs & Advance Payments) */
 .content-grid {
   display: grid;
@@ -711,6 +769,7 @@ body {
 .custom-table .col-rate,
 .custom-table .col-total,
 .custom-table .col-status,
+.custom-table .col-candidate,
 .custom-table .col-amount,
 .custom-table .col-type,
 .custom-table .col-method,

@@ -1,5 +1,12 @@
 import DailyLog from '../models/DailyLog.js';
 import Provider from '../models/Provider.js';
+import Candidate from '../models/Candidate.js';
+
+const resolveCandidateId = async (candidateId) => {
+  if (!candidateId) return null;
+  const exists = await Candidate.findById(candidateId).select('_id');
+  return exists ? exists._id : null;
+};
 
 // @desc    Get daily logs for a provider
 // @route   GET /api/daily-logs
@@ -13,7 +20,6 @@ export const getDailyLogs = async (req, res) => {
 
     let dateQuery = {};
     if (month) {
-      // month format: YYYY-MM
       dateQuery = { date: { $regex: `^${month}` } };
     } else if (startDate && endDate) {
       dateQuery = { date: { $gte: startDate, $lte: endDate } };
@@ -22,7 +28,9 @@ export const getDailyLogs = async (req, res) => {
     const logs = await DailyLog.find({
       provider: providerId,
       ...dateQuery,
-    }).sort({ date: 1 });
+    })
+      .populate('candidate', 'name status')
+      .sort({ date: 1 });
 
     res.json({ success: true, count: logs.length, data: logs });
   } catch (error) {
@@ -34,7 +42,7 @@ export const getDailyLogs = async (req, res) => {
 // @route   POST /api/daily-logs
 export const upsertDailyLog = async (req, res) => {
   try {
-    const { providerId, date, quantity, rate, status, notes } = req.body;
+    const { providerId, date, quantity, rate, status, notes, candidateId } = req.body;
 
     if (!providerId || !date) {
       return res.status(400).json({ success: false, message: 'providerId and date are required' });
@@ -45,20 +53,23 @@ export const upsertDailyLog = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Provider not found' });
     }
 
+    const candidate = await resolveCandidateId(candidateId);
+
     const appliedRate = rate !== undefined && rate !== null ? Number(rate) : provider.defaultRate;
     const appliedQty = quantity !== undefined ? Number(quantity) : 1;
     const appliedStatus = status || 'delivered';
-    
-    // If absent or holiday, cost is 0
-    const calculatedAmount = (appliedStatus === 'absent' || appliedStatus === 'holiday')
-      ? 0
-      : Number((appliedQty * appliedRate).toFixed(2));
+
+    const calculatedAmount =
+      appliedStatus === 'absent' || appliedStatus === 'holiday'
+        ? 0
+        : Number((appliedQty * appliedRate).toFixed(2));
 
     const log = await DailyLog.findOneAndUpdate(
-      { provider: providerId, date },
+      { provider: providerId, date, candidate },
       {
         provider: providerId,
         date,
+        candidate,
         quantity: appliedQty,
         rate: appliedRate,
         amount: calculatedAmount,
@@ -67,6 +78,8 @@ export const upsertDailyLog = async (req, res) => {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+
+    await log.populate('candidate', 'name status');
 
     res.status(200).json({ success: true, data: log });
   } catch (error) {
@@ -89,21 +102,26 @@ export const bulkUpsertDailyLogs = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Provider not found' });
     }
 
-    const operations = logs.map((item) => {
-      const appliedRate = item.rate !== undefined && item.rate !== null ? Number(item.rate) : provider.defaultRate;
+    const operations = [];
+    for (const item of logs) {
+      const candidate = await resolveCandidateId(item.candidateId);
+      const appliedRate =
+        item.rate !== undefined && item.rate !== null ? Number(item.rate) : provider.defaultRate;
       const appliedQty = item.quantity !== undefined ? Number(item.quantity) : 1;
       const appliedStatus = item.status || 'delivered';
-      const calculatedAmount = (appliedStatus === 'absent' || appliedStatus === 'holiday')
-        ? 0
-        : Number((appliedQty * appliedRate).toFixed(2));
+      const calculatedAmount =
+        appliedStatus === 'absent' || appliedStatus === 'holiday'
+          ? 0
+          : Number((appliedQty * appliedRate).toFixed(2));
 
-      return {
+      operations.push({
         updateOne: {
-          filter: { provider: providerId, date: item.date },
+          filter: { provider: providerId, date: item.date, candidate },
           update: {
             $set: {
               provider: providerId,
               date: item.date,
+              candidate,
               quantity: appliedQty,
               rate: appliedRate,
               amount: calculatedAmount,
@@ -113,8 +131,8 @@ export const bulkUpsertDailyLogs = async (req, res) => {
           },
           upsert: true,
         },
-      };
-    });
+      });
+    }
 
     const result = await DailyLog.bulkWrite(operations);
     res.json({ success: true, message: 'Bulk logs processed successfully', result });

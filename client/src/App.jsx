@@ -49,6 +49,7 @@ export default function App() {
 
   const [overview, setOverview] = useState(null);
   const [providers, setProviders] = useState([]);
+  const [candidates, setCandidates] = useState([]);
   const [selectedProviderId, setSelectedProviderId] = useState(null);
   const [providerSummary, setProviderSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,6 +73,7 @@ export default function App() {
     setUser(null);
     setOverview(null);
     setProviders([]);
+    setCandidates([]);
     setProviderSummary(null);
   }, []);
 
@@ -114,6 +116,15 @@ export default function App() {
         }
         return fetchedProviders[0]?._id || null;
       });
+
+      // Candidates are optional — don't block dashboard if route missing/outdated
+      try {
+        const candidatesRes = await api.getCandidates("active");
+        setCandidates(candidatesRes.data || []);
+      } catch (candErr) {
+        console.warn("Candidates fetch skipped:", candErr.message);
+        setCandidates([]);
+      }
     } catch (err) {
       console.error("Fetch error:", err);
       setError(err.message || "Failed to load household billing data");
@@ -362,6 +373,7 @@ export default function App() {
                   provider={providerSummary?.provider}
                   currentMonth={currentMonth}
                   userRole={user.role}
+                  candidates={candidates}
                   onSaveLog={handleSaveLog}
                   onDeleteLog={handleDeleteLog}
                   loading={
@@ -437,6 +449,7 @@ export default function App() {
             onClose={() => setIsQuickLogOpen(false)}
             provider={providerSummary?.provider || null}
             currentMonth={currentMonth}
+            candidates={candidates}
             onSubmit={handleSaveLog}
           />
         </>

@@ -8,11 +8,13 @@ import providerRoutes from './routes/providerRoutes.js';
 import dailyLogRoutes from './routes/dailyLogRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
+import candidateRoutes from './routes/candidateRoutes.js';
 
 import User from './models/User.js';
 import Provider from './models/Provider.js';
 import DailyLog from './models/DailyLog.js';
 import Payment from './models/Payment.js';
+import Candidate from './models/Candidate.js';
 
 dotenv.config();
 
@@ -29,6 +31,7 @@ app.use('/api/providers', providerRoutes);
 app.use('/api/daily-logs', dailyLogRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/candidates', candidateRoutes);
 app.get('/', (req, res) => {
   res.json({
     message: 'Household Billing API is running',
@@ -143,6 +146,20 @@ const autoSeedIfEmpty = async () => {
 
       console.log('✅ Sample data seeded successfully!');
     }
+
+    // 3. Seed candidates table if empty
+    const candidateCount = await Candidate.countDocuments();
+    if (candidateCount === 0) {
+      console.log('🌱 Seeding candidates table...');
+      await Candidate.insertMany([
+        { name: 'Paras' },
+        { name: 'Ankush' },
+        { name: 'Jatin' },
+        { name: 'Anurag' },
+        { name: 'Reena' },
+      ]);
+      console.log('✅ Candidates seeded successfully!');
+    }
   } catch (err) {
     console.warn('⚠️ Seeding note:', err.message);
   }
@@ -162,6 +179,15 @@ const autoSeedIfEmpty = async () => {
 
 const startServer = async () => {
   await connectDB();
+
+  // Migrate daily-log unique index: provider+date → provider+date+candidate
+  try {
+    await DailyLog.collection.dropIndex('provider_1_date_1');
+  } catch {
+    // Index may already be removed
+  }
+  await DailyLog.syncIndexes();
+
   await autoSeedIfEmpty();
 
   if (process.env.NODE_ENV !== 'production') {

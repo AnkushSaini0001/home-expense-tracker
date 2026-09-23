@@ -1,6 +1,7 @@
 import Provider from '../models/Provider.js';
 import DailyLog from '../models/DailyLog.js';
 import Payment from '../models/Payment.js';
+import Candidate from '../models/Candidate.js';
 
 /** Categories that get 2 free leave days per month */
 const FREE_LEAVE_CATEGORIES = new Set(['Cook', 'Maid']);
@@ -94,6 +95,66 @@ const computeDailyUnitBilling = (logs) => {
   };
 };
 
+/**
+ * Split provider bill across household candidates.
+ * - Log with candidate → full amount to that person
+ * - Log without candidate (All) → split equally
+ * - monthly_fixed salary → split totalBilled equally (shared household cost)
+ * - Advances paid → credited equally
+ */
+const computeCandidateShares = ({
+  candidates,
+  logs,
+  billingType,
+  totalBilled,
+  totalPaid,
+}) => {
+  if (!candidates.length) return [];
+
+  const n = candidates.length;
+  const shares = candidates.map((c) => ({
+    candidateId: c._id,
+    name: c.name,
+    billedShare: 0,
+    paidShare: 0,
+    pendingShare: 0,
+  }));
+
+  const byId = Object.fromEntries(shares.map((s) => [String(s.candidateId), s]));
+
+  const addEqual = (amount) => {
+    const each = amount / n;
+    shares.forEach((s) => {
+      s.billedShare += each;
+    });
+  };
+
+  if (billingType === 'daily_unit') {
+    logs.forEach((log) => {
+      const amount = Number(log.amount) || 0;
+      if (amount <= 0) return;
+      const candId = log.candidate?._id || log.candidate;
+      if (candId && byId[String(candId)]) {
+        byId[String(candId)].billedShare += amount;
+      } else {
+        addEqual(amount);
+      }
+    });
+  } else {
+    // Shared monthly salary / wage after leave deductions
+    addEqual(totalBilled);
+  }
+
+  const paidEach = totalPaid / n;
+  shares.forEach((s) => {
+    s.billedShare = Number(s.billedShare.toFixed(2));
+    s.paidShare = Number(paidEach.toFixed(2));
+    s.pendingShare = Number((s.billedShare - s.paidShare).toFixed(2));
+  });
+
+  return shares;
+};
+
 // @desc    Get monthly billing summary for a specific provider
 // @route   GET /api/billing/summary/:providerId
 export const getProviderMonthlySummary = async (req, res) => {
@@ -114,13 +175,17 @@ export const getProviderMonthlySummary = async (req, res) => {
     const logs = await DailyLog.find({
       provider: providerId,
       date: { $regex: `^${month}` },
-    }).sort({ date: 1 });
+    })
+      .populate('candidate', 'name status')
+      .sort({ date: 1 });
 
     // 2. Fetch payments for the month
     const payments = await Payment.find({
       provider: providerId,
       date: { $regex: `^${month}` },
     }).sort({ date: 1 });
+
+    const candidates = await Candidate.find({ status: 'active' }).sort({ name: 1 });
 
     // 3. Compute billing based on provider type
     let totalUnits = 0;
@@ -174,6 +239,14 @@ export const getProviderMonthlySummary = async (req, res) => {
 
     const pendingBalance = Number((totalBilled - totalPaid).toFixed(2));
 
+    const candidateShares = computeCandidateShares({
+      candidates,
+      logs,
+      billingType: provider.billingType,
+      totalBilled,
+      totalPaid,
+    });
+
     // 5. Generate formatted WhatsApp / printable summary string
     const monthFormatted = formatMonthName(month);
     let billDetails = '';
@@ -191,6 +264,17 @@ export const getProviderMonthlySummary = async (req, res) => {
       billDetails = `💼 *Monthly Salary:* ₹${provider.defaultRate.toLocaleString('en-IN')}${leaveNote}\n💰 *Total Billed:* ₹${totalBilled.toLocaleString('en-IN')}`;
     }
 
+    let candidateBlock = '';
+    if (candidateShares.length > 0) {
+      const lines = candidateShares
+        .map(
+          (s) =>
+            `• ${s.name}: billed ₹${s.billedShare.toLocaleString('en-IN')} | paid ₹${s.paidShare.toLocaleString('en-IN')} | due ₹${s.pendingShare.toLocaleString('en-IN')}`
+        )
+        .join('\n');
+      candidateBlock = `\n👥 *Per Candidate Share:*\n${lines}\n`;
+    }
+
     const shareableSummary =
 `🧾 *HOUSEHOLD BILL STATEMENT*
 📅 *Month:* ${monthFormatted}
@@ -198,9 +282,10 @@ export const getProviderMonthlySummary = async (req, res) => {
 
 ${billDetails}
 💸 *Advances / Paid:* ₹${totalPaid.toLocaleString('en-IN')} (${payments.length} payments)
-----------------------------------
+${candidateBlock}----------------------------------
 ${pendingBalance >= 0 ? '⏳ *Balance Pending:*' : '✅ *Overpaid / Credit:*'} ₹${Math.abs(pendingBalance).toLocaleString('en-IN')}
 
+_Note: Untagged entries are shared equally by all candidates._
 _Generated via Household Billing Tracker_`;
 
     res.json({
@@ -228,9 +313,11 @@ _Generated via Household Billing Tracker_`;
           totalPaid,
           pendingBalance,
           isFullyPaid: pendingBalance <= 0,
+          candidateShares,
         },
         logs,
         payments,
+        candidates,
         shareableSummary,
       },
     });

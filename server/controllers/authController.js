@@ -1,13 +1,13 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 // Helper to generate JWT Token
 const generateToken = (id, role) => {
   return jwt.sign(
     { id, role },
-    process.env.JWT_SECRET || 'homeledger_jwt_secure_secret_key_2026_xyz',
+    process.env.JWT_SECRET || "homeledger_jwt_secure_secret_key_2026_xyz",
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     }
   );
 };
@@ -21,15 +21,18 @@ export const login = async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide username and password',
+        message: "Please provide username and password",
       });
     }
 
-    const user = await User.findOne({ username: username.toLowerCase().trim() });
+    const user = await User.findOne({
+      username: username.toLowerCase().trim(),
+    });
+    console.log("user", user);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid username or password',
+        message: "Invalid username or password",
       });
     }
 
@@ -37,7 +40,7 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid username or password',
+        message: "Invalid username or password",
       });
     }
 
@@ -67,22 +70,24 @@ export const register = async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide username and password',
+        message: "Please provide username and password",
       });
     }
 
-    const existingUser = await User.findOne({ username: username.toLowerCase().trim() });
+    const existingUser = await User.findOne({
+      username: username.toLowerCase().trim(),
+    });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Username already exists',
+        message: "Username already exists",
       });
     }
 
     const user = await User.create({
       username: username.toLowerCase().trim(),
       password,
-      role: role === 'admin' ? 'admin' : 'user',
+      role: role === "admin" ? "admin" : "user",
       name: name || username,
     });
 

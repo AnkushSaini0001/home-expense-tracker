@@ -1,6 +1,9 @@
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Prefer VITE_API_URL; in local Vite use localhost so new routes (e.g. candidates) work
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
+  // (import.meta.env.DEV
+  //   ? "http://localhost:5000/api"
+  //   : "https://home-expense-tracker-one.vercel.app/api");
   "https://home-expense-tracker-one.vercel.app/api";
 
 async function request(endpoint, options = {}) {
@@ -17,17 +20,36 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, { ...options, headers });
-    const data = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    const raw = await response.text();
+
+    let data = {};
+    if (contentType.includes("application/json") && raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error("Invalid JSON response from server");
+      }
+    } else if (raw.startsWith("<!DOCTYPE") || raw.startsWith("<html")) {
+      throw new Error(
+        `API route not found (${endpoint}). Is the server running and up to date?`
+      );
+    } else if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error(raw.slice(0, 120) || "Unexpected server response");
+      }
+    }
 
     if (response.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.dispatchEvent(new Event("auth:unauthorized"));
     }
 
     if (!response.ok) {
-      throw new Error(data.message || "Something went wrong");
+      throw new Error(data.message || `Request failed (${response.status})`);
     }
     return data;
   } catch (error) {
@@ -97,4 +119,9 @@ export const api = {
   getDashboardOverview: (month) => request(`/billing/overview?month=${month}`),
   getProviderMonthlySummary: (providerId, month) =>
     request(`/billing/summary/${providerId}?month=${month}`),
+
+  // Candidates
+  getCandidates: (status) =>
+    request(`/candidates${status ? `?status=${status}` : ""}`),
+  getCandidateById: (id) => request(`/candidates/${id}`),
 };

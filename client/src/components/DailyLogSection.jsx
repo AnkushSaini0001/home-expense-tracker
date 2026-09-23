@@ -100,6 +100,7 @@ export default function DailyLogSection({
   provider,
   currentMonth,
   userRole,
+  candidates = [],
   onSaveLog,
   onDeleteLog,
   loading = false,
@@ -118,6 +119,7 @@ export default function DailyLogSection({
   );
   const [status, setStatus] = useState("delivered");
   const [notes, setNotes] = useState("");
+  const [candidateId, setCandidateId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isDailyUnit = provider?.billingType === "daily_unit";
@@ -139,8 +141,10 @@ export default function DailyLogSection({
         rate: provider.defaultRate,
         status,
         notes,
+        candidateId: candidateId || null,
       });
       setNotes("");
+      setCandidateId("");
     } catch (err) {
       console.error(err);
     } finally {
@@ -240,6 +244,22 @@ export default function DailyLogSection({
             </select>
           </div>
 
+          <div style={{ flex: "1 1 140px" }}>
+            <select
+              className="form-select"
+              value={candidateId}
+              onChange={(e) => setCandidateId(e.target.value)}
+              title="Leave as All if this entry is shared by everyone"
+            >
+              <option value="">All Candidates</option>
+              {candidates.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ flex: "2 1 130px" }}>
             <input
               type="text"
@@ -305,6 +325,7 @@ export default function DailyLogSection({
                 {isDailyUnit && <th className="col-rate">Rate</th>}
                 {isDailyUnit && <th className="col-total">Total</th>}
                 <th className="col-status">Status</th>
+                <th className="col-candidate">Candidate</th>
                 <th className="col-notes">Notes</th>
                 {isAdmin && <th className="col-actions" aria-label="Actions" />}
               </tr>
@@ -313,6 +334,7 @@ export default function DailyLogSection({
               {logs.map((log) => {
                 const dayNum = log.date.split("-")[2];
                 const hasNote = Boolean(log.notes?.trim());
+                const candidateName = log.candidate?.name || "All";
                 return (
                   <tr key={log._id}>
                     <td className="col-date">
@@ -336,7 +358,19 @@ export default function DailyLogSection({
                       </td>
                     )}
                     <td className="col-status">{getStatusBadge(log.status)}</td>
-                    <td className={`col-notes${hasNote ? " has-note" : ""}`}>
+                    <td className="col-candidate">
+                      <span
+                        className={`tag ${
+                          log.candidate ? "tag-indigo" : "tag-emerald"
+                        }`}
+                      >
+                        {candidateName}
+                      </span>
+                    </td>
+                    <td
+                      className={`col-notes${hasNote ? " has-note" : ""}`}
+                      title={hasNote ? log.notes : undefined}
+                    >
                       {hasNote ? log.notes : "—"}
                     </td>
                     {isAdmin && (

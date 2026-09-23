@@ -6,6 +6,7 @@ export default function DailyLogModal({
   onClose,
   provider,
   currentMonth,
+  candidates = [],
   onSubmit,
 }) {
   const today = new Date().toISOString().slice(0, 10);
@@ -16,6 +17,7 @@ export default function DailyLogModal({
   const [rate, setRate] = useState(provider?.defaultRate || 0);
   const [status, setStatus] = useState('delivered');
   const [notes, setNotes] = useState('');
+  const [candidateId, setCandidateId] = useState('');
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
@@ -43,7 +45,10 @@ export default function DailyLogModal({
         rate: Number(rate),
         status,
         notes,
+        candidateId: candidateId || null,
       });
+      setCandidateId('');
+      setNotes('');
       onClose();
     } catch (err) {
       console.error(err);
@@ -136,6 +141,31 @@ export default function DailyLogModal({
                 />
               </div>
             )}
+
+            <div className="form-group">
+              <label className="form-label">Candidate</label>
+              <select
+                className="form-select"
+                value={candidateId}
+                onChange={(e) => setCandidateId(e.target.value)}
+              >
+                <option value="">All Candidates (shared)</option>
+                {candidates.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  marginTop: '0.35rem',
+                }}
+              >
+                Leave as All if this cost is shared by everyone.
+              </p>
+            </div>
 
             <div className="form-group">
               <label className="form-label">Notes (Optional)</label>

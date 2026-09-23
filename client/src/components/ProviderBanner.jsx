@@ -183,6 +183,34 @@ export default function ProviderBanner({
           </span>
         </div>
       </div>
+
+      {Array.isArray(billing.candidateShares) && billing.candidateShares.length > 0 && (
+        <div className="candidate-share-panel">
+          <div className="candidate-share-heading">Per Candidate Share</div>
+          <div className="candidate-share-grid">
+            {billing.candidateShares.map((share) => (
+              <div className="candidate-share-card" key={String(share.candidateId)}>
+                <div className="candidate-share-name">{share.name}</div>
+                <div className="candidate-share-row">
+                  <span>Billed</span>
+                  <strong>₹{share.billedShare.toLocaleString('en-IN')}</strong>
+                </div>
+                <div className="candidate-share-row">
+                  <span>Paid credit</span>
+                  <strong>₹{share.paidShare.toLocaleString('en-IN')}</strong>
+                </div>
+                <div className="candidate-share-row due">
+                  <span>Due</span>
+                  <strong>₹{share.pendingShare.toLocaleString('en-IN')}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="candidate-share-hint">
+            Untagged entries are shared equally. Tagged entries are billed only to that candidate.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
