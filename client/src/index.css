@@ -634,6 +634,10 @@ body {
   color: #fb7185;
 }
 
+.candidate-share-row.qty strong {
+  color: #60a5fa;
+}
+
 .candidate-share-hint {
   margin-top: 0.75rem;
   font-size: 0.75rem;

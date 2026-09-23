@@ -191,6 +191,17 @@ export default function ProviderBanner({
             {billing.candidateShares.map((share) => (
               <div className="candidate-share-card" key={String(share.candidateId)}>
                 <div className="candidate-share-name">{share.name}</div>
+                {isDailyUnit && (
+                  <div className="candidate-share-row qty">
+                    <span>Milk used</span>
+                    <strong>
+                      {Number(share.quantityShare || 0).toLocaleString('en-IN', {
+                        maximumFractionDigits: 2,
+                      })}{' '}
+                      {share.unit || provider.unit || 'Liter'}
+                    </strong>
+                  </div>
+                )}
                 <div className="candidate-share-row">
                   <span>Billed</span>
                   <strong>₹{share.billedShare.toLocaleString('en-IN')}</strong>

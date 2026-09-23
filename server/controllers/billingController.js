@@ -98,7 +98,7 @@ const computeDailyUnitBilling = (logs) => {
 
 /**
  * Split provider bill across household candidates.
- * - Log with candidates[] → split amount among those people only
+ * - Log with candidates[] → split amount/qty among those people only
  * - Log with empty candidates (All) → split equally among everyone
  * - monthly_fixed salary → split totalBilled equally
  * - Advances paid → credited equally
@@ -109,6 +109,7 @@ const computeCandidateShares = ({
   billingType,
   totalBilled,
   totalPaid,
+  unit = 'Liter',
 }) => {
   if (!candidates.length) return [];
 
@@ -119,18 +120,22 @@ const computeCandidateShares = ({
     billedShare: 0,
     paidShare: 0,
     pendingShare: 0,
+    quantityShare: 0,
+    unit,
   }));
 
   const byId = Object.fromEntries(shares.map((s) => [String(s.candidateId), s]));
 
-  const addEqual = (amount, targetIds = null) => {
+  const addSplit = (amount, quantity, targetIds = null) => {
     const targets = targetIds?.length
       ? targetIds.filter((id) => byId[String(id)])
       : shares.map((s) => s.candidateId);
     if (!targets.length) return;
-    const each = amount / targets.length;
+    const eachAmount = amount / targets.length;
+    const eachQty = quantity / targets.length;
     targets.forEach((id) => {
-      byId[String(id)].billedShare += each;
+      byId[String(id)].billedShare += eachAmount;
+      byId[String(id)].quantityShare += eachQty;
     });
   };
 
@@ -138,20 +143,21 @@ const computeCandidateShares = ({
     if (Array.isArray(log.candidates) && log.candidates.length > 0) {
       return log.candidates.map((c) => c?._id || c).filter(Boolean);
     }
-    // Legacy single-candidate field
     const legacy = log.candidate?._id || log.candidate;
     return legacy ? [legacy] : [];
   };
 
   if (billingType === 'daily_unit') {
     logs.forEach((log) => {
+      const isBillable = log.status === 'delivered' || log.status === 'extra';
       const amount = Number(log.amount) || 0;
-      if (amount <= 0) return;
+      const quantity = isBillable ? Number(log.quantity) || 0 : 0;
+      if (amount <= 0 && quantity <= 0) return;
       const assigned = getLogCandidateIds(log);
-      addEqual(amount, assigned.length ? assigned : null);
+      addSplit(amount, quantity, assigned.length ? assigned : null);
     });
   } else {
-    addEqual(totalBilled);
+    addSplit(totalBilled, 0, null);
   }
 
   const paidEach = totalPaid / n;
@@ -159,6 +165,7 @@ const computeCandidateShares = ({
     s.billedShare = Number(s.billedShare.toFixed(2));
     s.paidShare = Number(paidEach.toFixed(2));
     s.pendingShare = Number((s.billedShare - s.paidShare).toFixed(2));
+    s.quantityShare = Number(s.quantityShare.toFixed(2));
   });
 
   return shares;
@@ -255,6 +262,7 @@ export const getProviderMonthlySummary = async (req, res) => {
       billingType: provider.billingType,
       totalBilled,
       totalPaid,
+      unit: provider.unit || 'Liter',
     });
 
     // 5. Generate formatted WhatsApp / printable summary string
@@ -276,11 +284,16 @@ export const getProviderMonthlySummary = async (req, res) => {
 
     let candidateBlock = '';
     if (candidateShares.length > 0) {
+      const isDaily = provider.billingType === 'daily_unit';
+      const unitLabel = provider.unit || 'Liter';
       const lines = candidateShares
-        .map(
-          (s) =>
-            `• ${s.name}: billed ₹${s.billedShare.toLocaleString('en-IN')} | paid ₹${s.paidShare.toLocaleString('en-IN')} | due ₹${s.pendingShare.toLocaleString('en-IN')}`
-        )
+        .map((s) => {
+          const qtyPart =
+            isDaily && s.quantityShare > 0
+              ? ` | qty ${s.quantityShare} ${unitLabel}`
+              : '';
+          return `• ${s.name}: billed ₹${s.billedShare.toLocaleString('en-IN')}${qtyPart} | paid ₹${s.paidShare.toLocaleString('en-IN')} | due ₹${s.pendingShare.toLocaleString('en-IN')}`;
+        })
         .join('\n');
       candidateBlock = `\n👥 *Per Candidate Share:*\n${lines}\n`;
     }
