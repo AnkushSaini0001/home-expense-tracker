@@ -121,7 +121,12 @@ export const api = {
     request(`/billing/summary/${providerId}?month=${month}`),
 
   // Candidates
-  getCandidates: (status) =>
-    request(`/candidates${status ? `?status=${status}` : ""}`),
+  getCandidates: (status, category) => {
+    const params = new URLSearchParams();
+    if (status) params.append("status", status);
+    if (category) params.append("category", category);
+    const qs = params.toString();
+    return request(`/candidates${qs ? `?${qs}` : ""}`);
+  },
   getCandidateById: (id) => request(`/candidates/${id}`),
 };

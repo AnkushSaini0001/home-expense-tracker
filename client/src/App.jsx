@@ -148,6 +148,14 @@ export default function App() {
         currentMonth
       );
       setProviderSummary(summaryRes.data);
+
+      const category = summaryRes.data?.provider?.category;
+      try {
+        const candidatesRes = await api.getCandidates("active", category);
+        setCandidates(candidatesRes.data || []);
+      } catch (candErr) {
+        console.warn("Candidates fetch skipped:", candErr.message);
+      }
     } catch (err) {
       console.error("Provider summary error:", err);
     } finally {
@@ -398,10 +406,15 @@ export default function App() {
         </SkeletonTheme>
       ) : (
         <div className="section-card empty-providers-card">
-          <div className="empty-icon" style={{ fontSize: "3rem", marginBottom: "1rem" }}>
+          <div
+            className="empty-icon"
+            style={{ fontSize: "3rem", marginBottom: "1rem" }}
+          >
             🏡
           </div>
-          <h2 className="empty-providers-title">No Household Service Providers Yet</h2>
+          <h2 className="empty-providers-title">
+            No Household Service Providers Yet
+          </h2>
           <p className="empty-providers-text">
             {isAdmin
               ? "Add your daily milkman, cook, or home helper to start tracking daily records, advance payments, and pending dues."

@@ -152,7 +152,7 @@ const autoSeedIfEmpty = async () => {
     if (candidateCount === 0) {
       console.log('🌱 Seeding candidates table...');
       await Candidate.insertMany([
-        { name: 'Paras' },
+        { name: 'Paras', excludedCategories: ['Milkman'] },
         { name: 'Ankush' },
         { name: 'Jatin', excludedCategories: ['Cook'] },
         { name: 'Anurag' },
@@ -160,7 +160,7 @@ const autoSeedIfEmpty = async () => {
       ]);
       console.log('✅ Candidates seeded successfully!');
     } else {
-      // Ensure Reena is milk-only; Jatin is excluded from Cook (idempotent)
+      // Ensure candidate facility rules (idempotent)
       await Candidate.updateOne(
         { name: /^reena$/i },
         { $set: { applicableCategories: ['Milkman'] } }
@@ -168,6 +168,10 @@ const autoSeedIfEmpty = async () => {
       await Candidate.updateOne(
         { name: /^jatin$/i },
         { $set: { excludedCategories: ['Cook'] } }
+      );
+      await Candidate.updateOne(
+        { name: /^paras$/i },
+        { $set: { excludedCategories: ['Milkman'] } }
       );
     }
   } catch (err) {
