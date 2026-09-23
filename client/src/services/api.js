@@ -119,6 +119,11 @@ export const api = {
   getDashboardOverview: (month) => request(`/billing/overview?month=${month}`),
   getProviderMonthlySummary: (providerId, month) =>
     request(`/billing/summary/${providerId}?month=${month}`),
+  getCandidateMonthlyBill: (month, candidateId, providerId = "all") => {
+    const params = new URLSearchParams({ month, candidateId });
+    if (providerId) params.append("providerId", providerId);
+    return request(`/billing/candidate-bill?${params.toString()}`);
+  },
 
   // Candidates
   getCandidates: (status, category) => {

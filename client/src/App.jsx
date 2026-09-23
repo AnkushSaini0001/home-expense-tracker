@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import DashboardPage from './pages/DashboardPage';
+import GenerateMonthlyBillPage from './pages/GenerateMonthlyBillPage';
 import LoginPage from './components/LoginPage';
 
 import RecordPaymentModal from './components/modals/RecordPaymentModal';
@@ -245,96 +247,114 @@ export default function App() {
   const statsLoading = loading || (!overview && !error);
 
   return (
-    <AppShell
-      providers={providers}
-      selectedProviderId={selectedProviderId}
-      onSelectProvider={setSelectedProviderId}
-      user={user}
-      currentMonth={currentMonth}
-      setCurrentMonth={setCurrentMonth}
-      monthName={monthName}
-      onLogout={handleLogout}
-      onOpenAddProvider={() => setIsAddProviderOpen(true)}
-      onOpenAddPayment={() => setIsRecordPaymentOpen(true)}
-      providersLoading={loading && providers.length === 0}
-    >
-      <DashboardPage
-        error={error}
-        onRetry={fetchData}
-        totals={totals}
-        monthName={monthName}
-        statsLoading={statsLoading}
-        loading={loading}
+    <BrowserRouter>
+      <AppShell
         providers={providers}
-        isAdmin={isAdmin}
-        onOpenAddProvider={() => setIsAddProviderOpen(true)}
-        providerSummary={providerSummary}
-        providerSummaryLoading={providerSummaryLoading}
-        userRole={user.role}
+        selectedProviderId={selectedProviderId}
+        onSelectProvider={setSelectedProviderId}
+        user={user}
         currentMonth={currentMonth}
-        candidates={candidates}
-        onOpenQuickLog={() => setIsQuickLogOpen(true)}
+        setCurrentMonth={setCurrentMonth}
+        monthName={monthName}
+        onLogout={handleLogout}
+        onOpenAddProvider={() => setIsAddProviderOpen(true)}
         onOpenAddPayment={() => setIsRecordPaymentOpen(true)}
-        onOpenShareBill={() => setIsShareBillOpen(true)}
-        onOpenEditProvider={() => setIsEditProviderOpen(true)}
-        onDeleteProvider={handleDeleteProvider}
-        onSaveLog={handleSaveLog}
-        onDeleteLog={handleDeleteLog}
-        onDeletePayment={handleDeletePayment}
-      />
-
-      {isAdmin && (
-        <>
-          <RecordPaymentModal
-            isOpen={isRecordPaymentOpen}
-            onClose={() => setIsRecordPaymentOpen(false)}
-            providers={providers}
-            selectedProviderId={selectedProviderId}
-            currentMonth={currentMonth}
-            onSubmit={handleRecordPayment}
+        providersLoading={loading && providers.length === 0}
+      >
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <DashboardPage
+                error={error}
+                onRetry={fetchData}
+                totals={totals}
+                monthName={monthName}
+                statsLoading={statsLoading}
+                loading={loading}
+                providers={providers}
+                isAdmin={isAdmin}
+                onOpenAddProvider={() => setIsAddProviderOpen(true)}
+                providerSummary={providerSummary}
+                providerSummaryLoading={providerSummaryLoading}
+                userRole={user.role}
+                currentMonth={currentMonth}
+                candidates={candidates}
+                onOpenQuickLog={() => setIsQuickLogOpen(true)}
+                onOpenAddPayment={() => setIsRecordPaymentOpen(true)}
+                onOpenShareBill={() => setIsShareBillOpen(true)}
+                onOpenEditProvider={() => setIsEditProviderOpen(true)}
+                onDeleteProvider={handleDeleteProvider}
+                onSaveLog={handleSaveLog}
+                onDeleteLog={handleDeleteLog}
+                onDeletePayment={handleDeletePayment}
+              />
+            }
           />
-
-          <ProviderModal
-            isOpen={isAddProviderOpen}
-            onClose={() => setIsAddProviderOpen(false)}
-            provider={null}
-            onSubmit={handleCreateProvider}
+          <Route
+            path="/generate-bill"
+            element={
+              <GenerateMonthlyBillPage
+                currentMonth={currentMonth}
+                monthName={monthName}
+              />
+            }
           />
+        </Routes>
 
-          <ProviderModal
-            isOpen={isEditProviderOpen}
-            onClose={() => setIsEditProviderOpen(false)}
-            provider={providerSummary?.provider || null}
-            onSubmit={handleUpdateProvider}
-          />
+        {isAdmin && (
+          <>
+            <RecordPaymentModal
+              isOpen={isRecordPaymentOpen}
+              onClose={() => setIsRecordPaymentOpen(false)}
+              providers={providers}
+              selectedProviderId={selectedProviderId}
+              currentMonth={currentMonth}
+              onSubmit={handleRecordPayment}
+            />
 
-          <DailyLogModal
-            isOpen={isQuickLogOpen}
-            onClose={() => setIsQuickLogOpen(false)}
-            provider={providerSummary?.provider || null}
-            currentMonth={currentMonth}
-            candidates={candidates}
-            onSubmit={handleSaveLog}
-          />
-        </>
-      )}
+            <ProviderModal
+              isOpen={isAddProviderOpen}
+              onClose={() => setIsAddProviderOpen(false)}
+              provider={null}
+              onSubmit={handleCreateProvider}
+            />
 
-      <ShareBillModal
-        isOpen={isShareBillOpen}
-        onClose={() => setIsShareBillOpen(false)}
-        summaryData={providerSummary}
-      />
+            <ProviderModal
+              isOpen={isEditProviderOpen}
+              onClose={() => setIsEditProviderOpen(false)}
+              provider={providerSummary?.provider || null}
+              onSubmit={handleUpdateProvider}
+            />
 
-      <ConfirmModal
-        isOpen={!!confirmDialog}
-        title={confirmDialog?.title}
-        message={confirmDialog?.message}
-        confirmLabel={confirmDialog?.confirmLabel}
-        onConfirm={confirmDialog?.onConfirm}
-        onClose={() => setConfirmDialog(null)}
-      />
+            <DailyLogModal
+              isOpen={isQuickLogOpen}
+              onClose={() => setIsQuickLogOpen(false)}
+              provider={providerSummary?.provider || null}
+              currentMonth={currentMonth}
+              candidates={candidates}
+              onSubmit={handleSaveLog}
+            />
+          </>
+        )}
 
-      <BackdropLoader isOpen={actionLoading} label="Processing..." />
-    </AppShell>
+        <ShareBillModal
+          isOpen={isShareBillOpen}
+          onClose={() => setIsShareBillOpen(false)}
+          summaryData={providerSummary}
+        />
+
+        <ConfirmModal
+          isOpen={!!confirmDialog}
+          title={confirmDialog?.title}
+          message={confirmDialog?.message}
+          confirmLabel={confirmDialog?.confirmLabel}
+          onConfirm={confirmDialog?.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+
+        <BackdropLoader isOpen={actionLoading} label="Processing..." />
+      </AppShell>
+    </BrowserRouter>
   );
 }

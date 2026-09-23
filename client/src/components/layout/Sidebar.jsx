@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home,
   Search,
@@ -10,6 +11,7 @@ import {
   Plus,
   ChevronRight,
   LayoutDashboard,
+  FileText,
   X,
 } from 'lucide-react';
 
@@ -34,6 +36,8 @@ export default function Sidebar({
   loading = false,
 }) {
   const isAdmin = userRole === 'admin';
+  const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState('');
   const [openMenus, setOpenMenus] = useState({});
 
@@ -60,7 +64,6 @@ export default function Sidebar({
     }));
   }, [providers, query]);
 
-  // Keep the menu that contains the selected provider open
   useEffect(() => {
     if (!selectedProviderId || !providers.length) return;
     const selected = providers.find((p) => p._id === selectedProviderId);
@@ -68,7 +71,6 @@ export default function Sidebar({
     setOpenMenus((prev) => ({ ...prev, [selected.category]: true }));
   }, [selectedProviderId, providers]);
 
-  // While searching, expand all matching menus
   useEffect(() => {
     if (!query.trim()) return;
     setOpenMenus((prev) => {
@@ -84,8 +86,9 @@ export default function Sidebar({
     setOpenMenus((prev) => ({ ...prev, [category]: !prev[category] }));
   };
 
-  const handleSelect = (id) => {
+  const handleSelectProvider = (id) => {
     onSelectProvider(id);
+    if (location.pathname !== '/') navigate('/');
     onClose?.();
   };
 
@@ -131,9 +134,41 @@ export default function Sidebar({
         </div>
 
         <nav className="sidebar-nav">
-          <div className="sidebar-nav-label">
-            <LayoutDashboard size={14} />
-            Menu
+          <div className="sidebar-nav-label">Menu</div>
+          <ul className="sidebar-menu sidebar-top-menu">
+            <li className="sidebar-menu-item">
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
+                  `sidebar-nav-link${isActive ? ' is-active' : ''}`
+                }
+                onClick={() => onClose?.()}
+              >
+                <span className="sidebar-menu-icon">
+                  <LayoutDashboard size={16} />
+                </span>
+                <span className="sidebar-menu-title">Dashboard</span>
+              </NavLink>
+            </li>
+            <li className="sidebar-menu-item">
+              <NavLink
+                to="/generate-bill"
+                className={({ isActive }) =>
+                  `sidebar-nav-link${isActive ? ' is-active' : ''}`
+                }
+                onClick={() => onClose?.()}
+              >
+                <span className="sidebar-menu-icon">
+                  <FileText size={16} />
+                </span>
+                <span className="sidebar-menu-title">Generate Monthly Bill</span>
+              </NavLink>
+            </li>
+          </ul>
+
+          <div className="sidebar-nav-label sidebar-nav-label-spaced">
+            Providers
           </div>
 
           {loading && providers.length === 0 ? (
@@ -147,9 +182,9 @@ export default function Sidebar({
               {grouped.map(({ category, items }) => {
                 const Icon = categoryIcons[category] || User;
                 const isOpen = !!openMenus[category];
-                const hasActiveChild = items.some(
-                  (p) => p._id === selectedProviderId
-                );
+                const hasActiveChild =
+                  location.pathname === '/' &&
+                  items.some((p) => p._id === selectedProviderId);
 
                 return (
                   <li
@@ -182,7 +217,9 @@ export default function Sidebar({
                       hidden={!isOpen}
                     >
                       {items.map((p) => {
-                        const active = selectedProviderId === p._id;
+                        const active =
+                          location.pathname === '/' &&
+                          selectedProviderId === p._id;
                         return (
                           <li key={p._id} className="sidebar-submenu-item">
                             <button
@@ -190,7 +227,7 @@ export default function Sidebar({
                               className={`sidebar-submenu-link${
                                 active ? ' is-active' : ''
                               }`}
-                              onClick={() => handleSelect(p._id)}
+                              onClick={() => handleSelectProvider(p._id)}
                             >
                               <span className="sidebar-submenu-bullet" />
                               <span className="sidebar-submenu-title">

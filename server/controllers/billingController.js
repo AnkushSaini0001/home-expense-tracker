@@ -2,7 +2,7 @@ import Provider from '../models/Provider.js';
 import DailyLog from '../models/DailyLog.js';
 import Payment from '../models/Payment.js';
 import Candidate from '../models/Candidate.js';
-import { filterCandidatesForCategory } from '../utils/candidateScope.js';
+import { filterCandidatesForCategory, isCandidateForCategory } from '../utils/candidateScope.js';
 
 /** Categories that get 2 free leave days per month */
 const FREE_LEAVE_CATEGORIES = new Set(['Cook', 'Maid']);
@@ -514,6 +514,263 @@ export const getDashboardOverview = async (req, res) => {
           providersCount: providers.length,
         },
         providers: providerSummaries,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Build one provider month summary + that candidate's share (internal helper).
+ */
+const buildProviderCandidateSection = async (provider, month, candidate) => {
+  if (!isCandidateForCategory(candidate, provider.category)) {
+    return null;
+  }
+
+  const logs = await DailyLog.find({
+    provider: provider._id,
+    date: { $regex: `^${month}` },
+  })
+    .populate('candidates', 'name status')
+    .sort({ date: 1 });
+
+  const payments = await Payment.find({
+    provider: provider._id,
+    date: { $regex: `^${month}` },
+  }).sort({ date: 1 });
+
+  const allCandidates = await Candidate.find({ status: 'active' }).sort({ name: 1 });
+  const scopedCandidates = filterCandidatesForCategory(allCandidates, provider.category);
+
+  let totalUnits = 0;
+  let daysDelivered = 0;
+  let daysAbsent = 0;
+  let totalBilled = 0;
+  let freeLeavesAllowed = 0;
+  let freeLeavesUsed = 0;
+  let deductibleLeaves = 0;
+  let leaveDeduction = 0;
+  let daysInMonth = null;
+  let perDayRate = null;
+
+  if (provider.billingType === 'daily_unit') {
+    const computed = computeDailyUnitBilling(logs);
+    totalUnits = computed.totalUnits;
+    daysDelivered = computed.daysDelivered;
+    daysAbsent = computed.daysAbsent;
+    totalBilled = computed.totalBilled;
+  } else {
+    const computed = computeMonthlyFixedBilling(provider, logs, month);
+    daysDelivered = computed.daysDelivered;
+    daysAbsent = computed.daysAbsent;
+    totalBilled = computed.totalBilled;
+    freeLeavesAllowed = computed.freeLeavesAllowed;
+    freeLeavesUsed = computed.freeLeavesUsed;
+    deductibleLeaves = computed.deductibleLeaves;
+    leaveDeduction = computed.leaveDeduction;
+    daysInMonth = computed.daysInMonth;
+    perDayRate = computed.perDayRate;
+  }
+
+  let totalPaid = 0;
+  let totalAdvance = 0;
+  let totalSettlement = 0;
+  payments.forEach((p) => {
+    totalPaid += p.amount;
+    if (p.paymentType === 'Advance' || p.paymentType === 'Mid-month') {
+      totalAdvance += p.amount;
+    } else {
+      totalSettlement += p.amount;
+    }
+  });
+  totalPaid = Number(totalPaid.toFixed(2));
+  totalAdvance = Number(totalAdvance.toFixed(2));
+  totalSettlement = Number(totalSettlement.toFixed(2));
+
+  const candidateShares = computeCandidateShares({
+    candidates: scopedCandidates,
+    logs,
+    billingType: provider.billingType,
+    totalBilled,
+    totalPaid,
+    unit: provider.unit || 'Liter',
+  });
+
+  const share = candidateShares.find(
+    (s) => String(s.candidateId) === String(candidate._id)
+  );
+
+  if (!share) return null;
+
+  const candidateIdStr = String(candidate._id);
+  const relevantLogs = logs.filter((log) => {
+    const ids =
+      Array.isArray(log.candidates) && log.candidates.length > 0
+        ? log.candidates.map((c) => String(c?._id || c))
+        : [];
+    // Empty = All → candidate is included for this facility
+    if (!ids.length) return true;
+    return ids.includes(candidateIdStr);
+  });
+
+  return {
+    provider: {
+      _id: provider._id,
+      name: provider.name,
+      category: provider.category,
+      billingType: provider.billingType,
+      defaultRate: provider.defaultRate,
+      unit: provider.unit,
+      phone: provider.phone,
+    },
+    billing: {
+      billingType: provider.billingType,
+      rate: provider.defaultRate,
+      unit: provider.unit,
+      totalUnits,
+      daysDelivered,
+      daysAbsent,
+      daysInMonth,
+      perDayRate,
+      freeLeavesAllowed,
+      freeLeavesUsed,
+      deductibleLeaves,
+      leaveDeduction,
+      providerTotalBilled: totalBilled,
+      providerTotalPaid: totalPaid,
+      providerPending: Number((totalBilled - totalPaid).toFixed(2)),
+    },
+    share: {
+      billedShare: share.billedShare,
+      paidShare: share.paidShare,
+      pendingShare: share.pendingShare,
+      quantityShare: share.quantityShare,
+      unit: share.unit,
+    },
+    logs: relevantLogs,
+    payments,
+  };
+};
+
+// @desc    Generate monthly bill for one candidate (one or all providers)
+// @route   GET /api/billing/candidate-bill
+export const getCandidateMonthlyBill = async (req, res) => {
+  try {
+    const { month, candidateId, providerId } = req.query;
+
+    if (!month) {
+      return res.status(400).json({
+        success: false,
+        message: 'Month query param (YYYY-MM) is required',
+      });
+    }
+    if (!candidateId) {
+      return res.status(400).json({
+        success: false,
+        message: 'candidateId query param is required',
+      });
+    }
+
+    const candidate = await Candidate.findById(candidateId);
+    if (!candidate || candidate.status !== 'active') {
+      return res.status(404).json({
+        success: false,
+        message: 'Candidate not found or inactive',
+      });
+    }
+
+    let providers;
+    if (providerId && providerId !== 'all') {
+      const one = await Provider.findById(providerId);
+      if (!one || one.status !== 'active') {
+        return res.status(404).json({
+          success: false,
+          message: 'Provider not found or inactive',
+        });
+      }
+      providers = [one];
+    } else {
+      providers = await Provider.find({ status: 'active' }).sort({
+        category: 1,
+        name: 1,
+      });
+    }
+
+    const sections = [];
+    for (const provider of providers) {
+      const section = await buildProviderCandidateSection(
+        provider,
+        month,
+        candidate
+      );
+      if (section) sections.push(section);
+    }
+
+    const totals = sections.reduce(
+      (acc, s) => {
+        acc.billed += s.share.billedShare;
+        acc.paid += s.share.paidShare;
+        acc.pending += s.share.pendingShare;
+        acc.quantity += s.share.quantityShare || 0;
+        return acc;
+      },
+      { billed: 0, paid: 0, pending: 0, quantity: 0 }
+    );
+
+    const monthFormatted = formatMonthName(month);
+    const providerFilterLabel =
+      providerId && providerId !== 'all'
+        ? sections[0]?.provider?.name || 'Selected provider'
+        : 'All providers';
+
+    const detailLines = sections
+      .map((s) => {
+        const qty =
+          s.billing.billingType === 'daily_unit' && s.share.quantityShare > 0
+            ? ` | ${s.share.quantityShare} ${s.share.unit || 'Liter'}`
+            : '';
+        return `• ${s.provider.name} (${s.provider.category}): billed ₹${s.share.billedShare.toLocaleString('en-IN')}${qty} | paid ₹${s.share.paidShare.toLocaleString('en-IN')} | due ₹${s.share.pendingShare.toLocaleString('en-IN')}`;
+      })
+      .join('\n');
+
+    const shareableSummary =
+`🧾 *CANDIDATE MONTHLY BILL*
+📅 *Month:* ${monthFormatted}
+👤 *Candidate:* ${candidate.name}
+🏢 *Providers:* ${providerFilterLabel}
+
+${detailLines || '• No billable share for this selection'}
+
+----------------------------------
+💰 *Total Billed:* ₹${Number(totals.billed.toFixed(2)).toLocaleString('en-IN')}
+💸 *Paid Credit:* ₹${Number(totals.paid.toFixed(2)).toLocaleString('en-IN')}
+⏳ *Balance Due:* ₹${Number(totals.pending.toFixed(2)).toLocaleString('en-IN')}
+
+_Generated via Household Billing Tracker_`;
+
+    res.json({
+      success: true,
+      data: {
+        month,
+        monthFormatted,
+        candidate: {
+          _id: candidate._id,
+          name: candidate.name,
+          applicableCategories: candidate.applicableCategories,
+          excludedCategories: candidate.excludedCategories,
+        },
+        providerFilter: providerId && providerId !== 'all' ? providerId : 'all',
+        sections,
+        totals: {
+          billed: Number(totals.billed.toFixed(2)),
+          paid: Number(totals.paid.toFixed(2)),
+          pending: Number(totals.pending.toFixed(2)),
+          quantity: Number(totals.quantity.toFixed(2)),
+          providersCount: sections.length,
+        },
+        shareableSummary,
       },
     });
   } catch (error) {
