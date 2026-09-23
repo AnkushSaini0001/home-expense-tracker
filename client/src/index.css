@@ -2432,3 +2432,16 @@ body {
 .bill-slip-status .is-settled {
   color: #34d399;
 }
+
+.bill-slip-skeleton-title {
+  flex: 1;
+  min-width: 140px;
+}
+
+.bill-slip-skeleton-box {
+  min-height: 260px;
+}
+
+.bill-slip-status-skeleton {
+  min-height: 48px;
+}
