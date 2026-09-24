@@ -1,5 +1,5 @@
-import Candidate from '../models/Candidate.js';
-import { filterCandidatesForCategory } from '../utils/candidateScope.js';
+import Candidate from "../models/Candidate.js";
+import { filterCandidatesForCategory } from "../utils/candidateScope.js";
 
 // @desc    Get all candidates
 // @route   GET /api/candidates
@@ -32,11 +32,43 @@ export const getCandidateById = async (req, res) => {
     if (!candidate) {
       return res.status(404).json({
         success: false,
-        message: 'Candidate not found',
+        message: "Candidate not found",
       });
     }
 
     res.json({ success: true, data: candidate });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Create a new candidate
+// @route   POST /api/candidates
+// @body    name, applicableCategories, fixedDailyQuantity
+export const createCandidate = async (req, res) => {
+  try {
+    const {
+      name,
+      applicableCategories,
+      fixedDailyQuantity,
+      excludedCategories,
+      status,
+    } = req.body;
+    const findCandidate = Candidate.findOne({ name });
+    if (findCandidate) {
+      return res.status(409).json({
+        success: false,
+        message: "Candidate already exists",
+      });
+    }
+    const candidate = await Candidate.create({
+      name,
+      applicableCategories,
+      fixedDailyQuantity,
+      excludedCategories,
+      status,
+    });
+    res.status(201).json({ success: true, data: candidate });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -1,24 +1,27 @@
-import Provider from '../models/Provider.js';
-import DailyLog from '../models/DailyLog.js';
-import Payment from '../models/Payment.js';
-import Candidate from '../models/Candidate.js';
-import { filterCandidatesForCategory, isCandidateForCategory } from '../utils/candidateScope.js';
+import Provider from "../models/Provider.js";
+import DailyLog from "../models/DailyLog.js";
+import Payment from "../models/Payment.js";
+import Candidate from "../models/Candidate.js";
+import {
+  filterCandidatesForCategory,
+  isCandidateForCategory,
+} from "../utils/candidateScope.js";
 
 /** Categories that get 2 free leave days per month */
-const FREE_LEAVE_CATEGORIES = new Set(['Cook', 'Maid']);
+const FREE_LEAVE_CATEGORIES = new Set(["Cook", "Maid"]);
 const FREE_LEAVES_PER_MONTH = 2;
 
 // Helper to get number of days in a month YYYY-MM
 const getDaysInMonth = (yearMonth) => {
-  const [year, month] = yearMonth.split('-').map(Number);
+  const [year, month] = yearMonth.split("-").map(Number);
   return new Date(year, month, 0).getDate();
 };
 
 // Helper to get month name
 const formatMonthName = (yearMonth) => {
-  const [year, month] = yearMonth.split('-').map(Number);
+  const [year, month] = yearMonth.split("-").map(Number);
   const date = new Date(year, month - 1, 1);
-  return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  return date.toLocaleString("default", { month: "long", year: "numeric" });
 };
 
 const allowsFreeLeaves = (category) => FREE_LEAVE_CATEGORIES.has(category);
@@ -35,14 +38,16 @@ const computeMonthlyFixedBilling = (provider, logs, month) => {
   let daysAbsent = 0;
 
   logs.forEach((log) => {
-    if (log.status === 'absent') {
+    if (log.status === "absent") {
       daysAbsent += 1;
-    } else if (log.status === 'delivered' || log.status === 'extra') {
+    } else if (log.status === "delivered" || log.status === "extra") {
       daysDelivered += 1;
     }
   });
 
-  const freeLeavesAllowed = allowsFreeLeaves(provider.category) ? FREE_LEAVES_PER_MONTH : 0;
+  const freeLeavesAllowed = allowsFreeLeaves(provider.category)
+    ? FREE_LEAVES_PER_MONTH
+    : 0;
   const freeLeavesUsed = Math.min(daysAbsent, freeLeavesAllowed);
   const deductibleLeaves = Math.max(0, daysAbsent - freeLeavesAllowed);
   const leaveDeduction =
@@ -75,10 +80,10 @@ const computeDailyUnitBilling = (logs) => {
   let totalBilled = 0;
 
   logs.forEach((log) => {
-    if (log.status === 'delivered' || log.status === 'extra') {
+    if (log.status === "delivered" || log.status === "extra") {
       totalUnits += log.quantity || 0;
       daysDelivered += 1;
-    } else if (log.status === 'absent') {
+    } else if (log.status === "absent") {
       daysAbsent += 1;
     }
     totalBilled += log.amount || 0;
@@ -113,7 +118,7 @@ const computeCandidateShares = ({
   billingType,
   totalBilled,
   totalPaid,
-  unit = 'Liter',
+  unit = "Liter",
 }) => {
   if (!candidates.length) return [];
 
@@ -128,7 +133,9 @@ const computeCandidateShares = ({
     unit,
   }));
 
-  const byId = Object.fromEntries(shares.map((s) => [String(s.candidateId), s]));
+  const byId = Object.fromEntries(
+    shares.map((s) => [String(s.candidateId), s])
+  );
 
   const fixedCandidates = candidates.filter(
     (c) => Number(c.fixedDailyQuantity) > 0
@@ -160,9 +167,9 @@ const computeCandidateShares = ({
     return legacy ? [legacy] : [];
   };
 
-  if (billingType === 'daily_unit') {
+  if (billingType === "daily_unit") {
     logs.forEach((log) => {
-      const isBillable = log.status === 'delivered' || log.status === 'extra';
+      const isBillable = log.status === "delivered" || log.status === "extra";
       const amount = Number(log.amount) || 0;
       const quantity = isBillable ? Number(log.quantity) || 0 : 0;
       if (amount <= 0 && quantity <= 0) return;
@@ -237,12 +244,17 @@ export const getProviderMonthlySummary = async (req, res) => {
     const { month } = req.query; // Format: YYYY-MM
 
     if (!month) {
-      return res.status(400).json({ success: false, message: 'Month query param (YYYY-MM) is required' });
+      return res.status(400).json({
+        success: false,
+        message: "Month query param (YYYY-MM) is required",
+      });
     }
 
     const provider = await Provider.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ success: false, message: 'Provider not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider not found" });
     }
 
     // 1. Fetch daily logs for the month
@@ -250,7 +262,7 @@ export const getProviderMonthlySummary = async (req, res) => {
       provider: providerId,
       date: { $regex: `^${month}` },
     })
-      .populate('candidates', 'name status')
+      .populate("candidates", "name status")
       .sort({ date: 1 });
 
     // 2. Fetch payments for the month
@@ -259,8 +271,13 @@ export const getProviderMonthlySummary = async (req, res) => {
       date: { $regex: `^${month}` },
     }).sort({ date: 1 });
 
-    const allCandidates = await Candidate.find({ status: 'active' }).sort({ name: 1 });
-    const candidates = filterCandidatesForCategory(allCandidates, provider.category);
+    const allCandidates = await Candidate.find({ status: "active" }).sort({
+      name: 1,
+    });
+    const candidates = filterCandidatesForCategory(
+      allCandidates,
+      provider.category
+    );
 
     // 3. Compute billing based on provider type
     let totalUnits = 0;
@@ -274,7 +291,7 @@ export const getProviderMonthlySummary = async (req, res) => {
     let daysInMonth = null;
     let perDayRate = null;
 
-    if (provider.billingType === 'daily_unit') {
+    if (provider.billingType === "daily_unit") {
       const computed = computeDailyUnitBilling(logs);
       totalUnits = computed.totalUnits;
       daysDelivered = computed.daysDelivered;
@@ -301,7 +318,7 @@ export const getProviderMonthlySummary = async (req, res) => {
 
     payments.forEach((p) => {
       totalPaid += p.amount;
-      if (p.paymentType === 'Advance' || p.paymentType === 'Mid-month') {
+      if (p.paymentType === "Advance" || p.paymentType === "Mid-month") {
         totalAdvance += p.amount;
       } else {
         totalSettlement += p.amount;
@@ -320,51 +337,70 @@ export const getProviderMonthlySummary = async (req, res) => {
       billingType: provider.billingType,
       totalBilled,
       totalPaid,
-      unit: provider.unit || 'Liter',
+      unit: provider.unit || "Liter",
     });
 
     // 5. Generate formatted WhatsApp / printable summary string
     const monthFormatted = formatMonthName(month);
-    let billDetails = '';
-    if (provider.billingType === 'daily_unit') {
-      billDetails = `📦 *Deliveries:* ${daysDelivered} days (${totalUnits} ${provider.unit || 'Units'}) @ ₹${provider.defaultRate}/${provider.unit || 'unit'}\n💰 *Total Billed:* ₹${totalBilled.toLocaleString('en-IN')}`;
+    let billDetails = "";
+    if (provider.billingType === "daily_unit") {
+      billDetails = `📦 *Deliveries:* ${daysDelivered} days (${totalUnits} ${
+        provider.unit || "Units"
+      }) @ ₹${provider.defaultRate}/${
+        provider.unit || "unit"
+      }\n💰 *Total Billed:* ₹${totalBilled.toLocaleString("en-IN")}`;
     } else {
-      let leaveNote = '';
+      let leaveNote = "";
       if (daysAbsent > 0) {
         if (freeLeavesAllowed > 0) {
-          leaveNote = ` (Leaves: ${daysAbsent} taken, ${freeLeavesUsed} free, ${deductibleLeaves} deducted${leaveDeduction > 0 ? ` −₹${leaveDeduction.toLocaleString('en-IN')}` : ''})`;
+          leaveNote = ` (Leaves: ${daysAbsent} taken, ${freeLeavesUsed} free, ${deductibleLeaves} deducted${
+            leaveDeduction > 0
+              ? ` −₹${leaveDeduction.toLocaleString("en-IN")}`
+              : ""
+          })`;
         } else {
           leaveNote = ` (Deductions: ${daysAbsent} absent days)`;
         }
       }
-      billDetails = `💼 *Monthly Salary:* ₹${provider.defaultRate.toLocaleString('en-IN')}${leaveNote}\n💰 *Total Billed:* ₹${totalBilled.toLocaleString('en-IN')}`;
+      billDetails = `💼 *Monthly Salary:* ₹${provider.defaultRate.toLocaleString(
+        "en-IN"
+      )}${leaveNote}\n💰 *Total Billed:* ₹${totalBilled.toLocaleString(
+        "en-IN"
+      )}`;
     }
 
-    let candidateBlock = '';
+    let candidateBlock = "";
     if (candidateShares.length > 0) {
-      const isDaily = provider.billingType === 'daily_unit';
-      const unitLabel = provider.unit || 'Liter';
+      const isDaily = provider.billingType === "daily_unit";
+      const unitLabel = provider.unit || "Liter";
       const lines = candidateShares
         .map((s) => {
           const qtyPart =
             isDaily && s.quantityShare > 0
               ? ` | qty ${s.quantityShare} ${unitLabel}`
-              : '';
-          return `• ${s.name}: billed ₹${s.billedShare.toLocaleString('en-IN')}${qtyPart} | paid ₹${s.paidShare.toLocaleString('en-IN')} | due ₹${s.pendingShare.toLocaleString('en-IN')}`;
+              : "";
+          return `• ${s.name}: billed ₹${s.billedShare.toLocaleString(
+            "en-IN"
+          )}${qtyPart} | paid ₹${s.paidShare.toLocaleString(
+            "en-IN"
+          )} | due ₹${s.pendingShare.toLocaleString("en-IN")}`;
         })
-        .join('\n');
+        .join("\n");
       candidateBlock = `\n👥 *Per Candidate Share:*\n${lines}\n`;
     }
 
-    const shareableSummary =
-`🧾 *HOUSEHOLD BILL STATEMENT*
+    const shareableSummary = `🧾 *HOUSEHOLD BILL STATEMENT*
 📅 *Month:* ${monthFormatted}
 👤 *Provider:* ${provider.name} (${provider.category})
 
 ${billDetails}
-💸 *Advances / Paid:* ₹${totalPaid.toLocaleString('en-IN')} (${payments.length} payments)
+💸 *Advances / Paid:* ₹${totalPaid.toLocaleString("en-IN")} (${
+      payments.length
+    } payments)
 ${candidateBlock}----------------------------------
-${pendingBalance >= 0 ? '⏳ *Balance Pending:*' : '✅ *Overpaid / Credit:*'} ₹${Math.abs(pendingBalance).toLocaleString('en-IN')}
+${
+  pendingBalance >= 0 ? "⏳ *Balance Pending:*" : "✅ *Overpaid / Credit:*"
+} ₹${Math.abs(pendingBalance).toLocaleString("en-IN")}
 
 _Note: Untagged (All) includes Reena at 0.5 L/day then splits the rest. If Reena is not selected, full qty goes to chosen candidates only._
 _Generated via Household Billing Tracker_`;
@@ -412,12 +448,19 @@ _Generated via Household Billing Tracker_`;
 export const getDashboardOverview = async (req, res) => {
   try {
     const { month } = req.query; // Format: YYYY-MM
+    console.log("month", month);
     if (!month) {
-      return res.status(400).json({ success: false, message: 'Month query param (YYYY-MM) is required' });
+      return res.status(400).json({
+        success: false,
+        message: "Month query param (YYYY-MM) is required",
+      });
     }
 
-    const providers = await Provider.find({ status: 'active' }).sort({ category: 1, name: 1 });
-
+    const providers = await Provider.find({ status: "active" }).sort({
+      category: 1,
+      name: 1,
+    });
+    console.log("providers", providers);
     let overallBilled = 0;
     let overallAdvance = 0;
     let overallPaid = 0;
@@ -430,7 +473,7 @@ export const getDashboardOverview = async (req, res) => {
           provider: provider._id,
           date: { $regex: `^${month}` },
         });
-
+        console.log("logs", logs);
         // Payments for month
         const payments = await Payment.find({
           provider: provider._id,
@@ -446,7 +489,7 @@ export const getDashboardOverview = async (req, res) => {
         let deductibleLeaves = 0;
         let leaveDeduction = 0;
 
-        if (provider.billingType === 'daily_unit') {
+        if (provider.billingType === "daily_unit") {
           const computed = computeDailyUnitBilling(logs);
           totalUnits = computed.totalUnits;
           daysDelivered = computed.daysDelivered;
@@ -468,7 +511,7 @@ export const getDashboardOverview = async (req, res) => {
 
         payments.forEach((p) => {
           totalPaid += p.amount;
-          if (p.paymentType === 'Advance' || p.paymentType === 'Mid-month') {
+          if (p.paymentType === "Advance" || p.paymentType === "Mid-month") {
             totalAdvance += p.amount;
           }
         });
@@ -500,6 +543,7 @@ export const getDashboardOverview = async (req, res) => {
         };
       })
     );
+    console.log("providerSummaries", providerSummaries);
 
     res.json({
       success: true,
@@ -533,7 +577,7 @@ const buildProviderCandidateSection = async (provider, month, candidate) => {
     provider: provider._id,
     date: { $regex: `^${month}` },
   })
-    .populate('candidates', 'name status')
+    .populate("candidates", "name status")
     .sort({ date: 1 });
 
   const payments = await Payment.find({
@@ -541,8 +585,13 @@ const buildProviderCandidateSection = async (provider, month, candidate) => {
     date: { $regex: `^${month}` },
   }).sort({ date: 1 });
 
-  const allCandidates = await Candidate.find({ status: 'active' }).sort({ name: 1 });
-  const scopedCandidates = filterCandidatesForCategory(allCandidates, provider.category);
+  const allCandidates = await Candidate.find({ status: "active" }).sort({
+    name: 1,
+  });
+  const scopedCandidates = filterCandidatesForCategory(
+    allCandidates,
+    provider.category
+  );
 
   let totalUnits = 0;
   let daysDelivered = 0;
@@ -555,7 +604,7 @@ const buildProviderCandidateSection = async (provider, month, candidate) => {
   let daysInMonth = null;
   let perDayRate = null;
 
-  if (provider.billingType === 'daily_unit') {
+  if (provider.billingType === "daily_unit") {
     const computed = computeDailyUnitBilling(logs);
     totalUnits = computed.totalUnits;
     daysDelivered = computed.daysDelivered;
@@ -579,7 +628,7 @@ const buildProviderCandidateSection = async (provider, month, candidate) => {
   let totalSettlement = 0;
   payments.forEach((p) => {
     totalPaid += p.amount;
-    if (p.paymentType === 'Advance' || p.paymentType === 'Mid-month') {
+    if (p.paymentType === "Advance" || p.paymentType === "Mid-month") {
       totalAdvance += p.amount;
     } else {
       totalSettlement += p.amount;
@@ -595,7 +644,7 @@ const buildProviderCandidateSection = async (provider, month, candidate) => {
     billingType: provider.billingType,
     totalBilled,
     totalPaid,
-    unit: provider.unit || 'Liter',
+    unit: provider.unit || "Liter",
   });
 
   const share = candidateShares.find(
@@ -663,40 +712,43 @@ export const getCandidateMonthlyBill = async (req, res) => {
     if (!month) {
       return res.status(400).json({
         success: false,
-        message: 'Month query param (YYYY-MM) is required',
+        message: "Month query param (YYYY-MM) is required",
       });
     }
     if (!candidateId) {
       return res.status(400).json({
         success: false,
-        message: 'candidateId query param is required',
+        message: "candidateId query param is required",
       });
     }
-
+    console.log("candidateId", candidateId);
     const candidate = await Candidate.findById(candidateId);
-    if (!candidate || candidate.status !== 'active') {
+    console.log("candidate", candidate);
+    if (!candidate || candidate.status !== "active") {
       return res.status(404).json({
         success: false,
-        message: 'Candidate not found or inactive',
+        message: "Candidate not found or inactive",
       });
     }
 
     let providers;
-    if (providerId && providerId !== 'all') {
+    if (providerId && providerId !== "all") {
       const one = await Provider.findById(providerId);
-      if (!one || one.status !== 'active') {
+      console.log("one", one);
+      if (!one || one.status !== "active") {
         return res.status(404).json({
           success: false,
-          message: 'Provider not found or inactive',
+          message: "Provider not found or inactive",
         });
       }
       providers = [one];
     } else {
-      providers = await Provider.find({ status: 'active' }).sort({
+      providers = await Provider.find({ status: "active" }).sort({
         category: 1,
         name: 1,
       });
     }
+    console.log("providers", providers);
 
     const sections = [];
     for (const provider of providers) {
@@ -721,35 +773,40 @@ export const getCandidateMonthlyBill = async (req, res) => {
 
     const monthFormatted = formatMonthName(month);
     const providerFilterLabel =
-      providerId && providerId !== 'all'
-        ? sections[0]?.provider?.name || 'Selected provider'
-        : 'All providers';
+      providerId && providerId !== "all"
+        ? sections[0]?.provider?.name || "Selected provider"
+        : "All providers";
 
     const detailLines = sections
       .map((s) => {
         const qty =
-          s.billing.billingType === 'daily_unit' && s.share.quantityShare > 0
-            ? ` | ${s.share.quantityShare} ${s.share.unit || 'Liter'}`
-            : '';
-        return `• ${s.provider.name} (${s.provider.category}): billed ₹${s.share.billedShare.toLocaleString('en-IN')}${qty} | paid ₹${s.share.paidShare.toLocaleString('en-IN')} | due ₹${s.share.pendingShare.toLocaleString('en-IN')}`;
+          s.billing.billingType === "daily_unit" && s.share.quantityShare > 0
+            ? ` | ${s.share.quantityShare} ${s.share.unit || "Liter"}`
+            : "";
+        return `• ${s.provider.name} (${
+          s.provider.category
+        }): billed ₹${s.share.billedShare.toLocaleString(
+          "en-IN"
+        )}${qty} | paid ₹${s.share.paidShare.toLocaleString(
+          "en-IN"
+        )} | due ₹${s.share.pendingShare.toLocaleString("en-IN")}`;
       })
-      .join('\n');
+      .join("\n");
 
-    const shareableSummary =
-`🧾 *CANDIDATE MONTHLY BILL*
+    const shareableSummary = `🧾 *CANDIDATE MONTHLY BILL*
 📅 *Month:* ${monthFormatted}
 👤 *Candidate:* ${candidate.name}
 🏢 *Providers:* ${providerFilterLabel}
 
-${detailLines || '• No billable share for this selection'}
+${detailLines || "• No billable share for this selection"}
 
 ----------------------------------
-💰 *Total Billed:* ₹${Number(totals.billed.toFixed(2)).toLocaleString('en-IN')}
-💸 *Paid Credit:* ₹${Number(totals.paid.toFixed(2)).toLocaleString('en-IN')}
-⏳ *Balance Due:* ₹${Number(totals.pending.toFixed(2)).toLocaleString('en-IN')}
+💰 *Total Billed:* ₹${Number(totals.billed.toFixed(2)).toLocaleString("en-IN")}
+💸 *Paid Credit:* ₹${Number(totals.paid.toFixed(2)).toLocaleString("en-IN")}
+⏳ *Balance Due:* ₹${Number(totals.pending.toFixed(2)).toLocaleString("en-IN")}
 
-_Generated via Household Billing Tracker_`;
-
+_Generated via Household Billing Tracker(Owner: Ankush Saini)_`;
+    console.log("shareableSummary", shareableSummary);
     res.json({
       success: true,
       data: {
@@ -761,7 +818,7 @@ _Generated via Household Billing Tracker_`;
           applicableCategories: candidate.applicableCategories,
           excludedCategories: candidate.excludedCategories,
         },
-        providerFilter: providerId && providerId !== 'all' ? providerId : 'all',
+        providerFilter: providerId && providerId !== "all" ? providerId : "all",
         sections,
         totals: {
           billed: Number(totals.billed.toFixed(2)),
