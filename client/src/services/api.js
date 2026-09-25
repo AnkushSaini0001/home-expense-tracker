@@ -1,10 +1,10 @@
 // Prefer VITE_API_URL; in local Vite use localhost so new routes (e.g. candidates) work
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
-  // (import.meta.env.DEV
-  //   ? "http://localhost:5000/api"
-  //   : "https://home-expense-tracker-one.vercel.app/api");
-  "https://home-expense-tracker-one.vercel.app/api";
+  (import.meta.env.DEV
+    ? "http://localhost:5000/api"
+    : "https://home-expense-tracker-one.vercel.app/api");
+// "https://home-expense-tracker-one.vercel.app/api";
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
