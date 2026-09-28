@@ -6,7 +6,7 @@ import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
-router.use(verifyToken);
+// router.use(verifyToken);
 
 router.post("/upload", upload.single("file"), uploadDocument);
 router.get("/:id/file", getDocument);
