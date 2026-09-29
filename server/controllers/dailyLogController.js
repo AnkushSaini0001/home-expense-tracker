@@ -2,6 +2,7 @@ import DailyLog from '../models/DailyLog.js';
 import Provider from '../models/Provider.js';
 import Candidate from '../models/Candidate.js';
 import { isCandidateForCategory } from '../utils/candidateScope.js';
+import AppError from '../utils/AppError.js';
 
 const resolveCandidateIds = async (candidateIds, providerCategory) => {
   const ids = Array.isArray(candidateIds)
@@ -21,12 +22,12 @@ const resolveCandidateIds = async (candidateIds, providerCategory) => {
 
 // @desc    Get daily logs for a provider
 // @route   GET /api/daily-logs
-export const getDailyLogs = async (req, res) => {
+export const getDailyLogs = async (req, res, next) => {
   try {
     const { providerId, month, startDate, endDate } = req.query;
 
     if (!providerId) {
-      return res.status(400).json({ success: false, message: 'providerId is required' });
+      return next(new AppError('providerId is required', 400));
     }
 
     let dateQuery = {};
@@ -45,13 +46,13 @@ export const getDailyLogs = async (req, res) => {
 
     res.json({ success: true, count: logs.length, data: logs });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Upsert (Create or Update) a single daily log
 // @route   POST /api/daily-logs
-export const upsertDailyLog = async (req, res) => {
+export const upsertDailyLog = async (req, res, next) => {
   try {
     const {
       providerId,
@@ -65,12 +66,12 @@ export const upsertDailyLog = async (req, res) => {
     } = req.body;
 
     if (!providerId || !date) {
-      return res.status(400).json({ success: false, message: 'providerId and date are required' });
+      return next(new AppError('providerId and date are required', 400));
     }
 
     const provider = await Provider.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ success: false, message: 'Provider not found' });
+      return next(new AppError('Provider not found', 404));
     }
 
     const incomingIds =
@@ -112,23 +113,23 @@ export const upsertDailyLog = async (req, res) => {
 
     res.status(200).json({ success: true, data: log });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Bulk upsert daily logs for a provider
 // @route   POST /api/daily-logs/bulk
-export const bulkUpsertDailyLogs = async (req, res) => {
+export const bulkUpsertDailyLogs = async (req, res, next) => {
   try {
     const { providerId, logs } = req.body;
 
     if (!providerId || !Array.isArray(logs)) {
-      return res.status(400).json({ success: false, message: 'providerId and logs array are required' });
+      return next(new AppError('providerId and logs array are required', 400));
     }
 
     const provider = await Provider.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ success: false, message: 'Provider not found' });
+      return next(new AppError('Provider not found', 404));
     }
 
     const operations = [];
@@ -173,20 +174,20 @@ export const bulkUpsertDailyLogs = async (req, res) => {
     const result = await DailyLog.bulkWrite(operations);
     res.json({ success: true, message: 'Bulk logs processed successfully', result });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Delete daily log
 // @route   DELETE /api/daily-logs/:id
-export const deleteDailyLog = async (req, res) => {
+export const deleteDailyLog = async (req, res, next) => {
   try {
     const log = await DailyLog.findByIdAndDelete(req.params.id);
     if (!log) {
-      return res.status(404).json({ success: false, message: 'Daily log not found' });
+      return next(new AppError('Daily log not found', 404));
     }
     res.json({ success: true, message: 'Daily log deleted successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };

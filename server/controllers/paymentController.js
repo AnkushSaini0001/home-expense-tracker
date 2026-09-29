@@ -1,9 +1,10 @@
 import Payment from '../models/Payment.js';
 import Provider from '../models/Provider.js';
+import AppError from '../utils/AppError.js';
 
 // @desc    Get payments for a provider
 // @route   GET /api/payments
-export const getPayments = async (req, res) => {
+export const getPayments = async (req, res, next) => {
   try {
     const { providerId, month } = req.query;
 
@@ -20,23 +21,23 @@ export const getPayments = async (req, res) => {
 
     res.json({ success: true, count: payments.length, data: payments });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Record new payment or advance
 // @route   POST /api/payments
-export const recordPayment = async (req, res) => {
+export const recordPayment = async (req, res, next) => {
   try {
     const { providerId, date, amount, paymentType, paymentMethod, notes, receiptNumber } = req.body;
 
     if (!providerId || !date || !amount) {
-      return res.status(400).json({ success: false, message: 'Provider, date and amount are required' });
+      return next(new AppError('Provider, date and amount are required', 400));
     }
 
     const provider = await Provider.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ success: false, message: 'Provider not found' });
+      return next(new AppError('Provider not found', 404));
     }
 
     const payment = await Payment.create({
@@ -53,13 +54,13 @@ export const recordPayment = async (req, res) => {
 
     res.status(201).json({ success: true, data: populated });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Update a payment
 // @route   PUT /api/payments/:id
-export const updatePayment = async (req, res) => {
+export const updatePayment = async (req, res, next) => {
   try {
     const payment = await Payment.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -67,25 +68,25 @@ export const updatePayment = async (req, res) => {
     }).populate('provider', 'name category');
 
     if (!payment) {
-      return res.status(404).json({ success: false, message: 'Payment record not found' });
+      return next(new AppError('Payment record not found', 404));
     }
 
     res.json({ success: true, data: payment });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Delete a payment
 // @route   DELETE /api/payments/:id
-export const deletePayment = async (req, res) => {
+export const deletePayment = async (req, res, next) => {
   try {
     const payment = await Payment.findByIdAndDelete(req.params.id);
     if (!payment) {
-      return res.status(404).json({ success: false, message: 'Payment record not found' });
+      return next(new AppError('Payment record not found', 404));
     }
     res.json({ success: true, message: 'Payment deleted successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };

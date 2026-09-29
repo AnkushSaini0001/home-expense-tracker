@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import AppError from "../utils/AppError.js";
 
 // Helper to generate JWT Token
 const generateToken = (id, role) => {
@@ -14,15 +15,12 @@ const generateToken = (id, role) => {
 
 // @desc    Authenticate user & get token
 // @route   POST /api/auth/login
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide username and password",
-      });
+      return next(new AppError("Please provide username and password", 400));
     }
 
     const user = await User.findOne({
@@ -30,18 +28,12 @@ export const login = async (req, res) => {
     });
     console.log("user", user);
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid username or password",
-      });
+      return next(new AppError("Invalid username or password", 401));
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid username or password",
-      });
+      return next(new AppError("Invalid username or password", 401));
     }
 
     const token = generateToken(user._id, user.role);
@@ -57,31 +49,25 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   try {
     const { username, password, role, name } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide username and password",
-      });
+      return next(new AppError("Please provide username and password", 400));
     }
 
     const existingUser = await User.findOne({
       username: username.toLowerCase().trim(),
     });
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Username already exists",
-      });
+      return next(new AppError("Username already exists", 400));
     }
 
     const user = await User.create({
@@ -104,19 +90,19 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
-export const getMe = async (req, res) => {
+export const getMe = async (req, res, next) => {
   try {
     res.json({
       success: true,
       user: req.user,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };

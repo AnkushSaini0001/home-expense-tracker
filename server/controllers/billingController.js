@@ -6,6 +6,7 @@ import {
   filterCandidatesForCategory,
   isCandidateForCategory,
 } from "../utils/candidateScope.js";
+import AppError from "../utils/AppError.js";
 
 /** Categories that get 2 free leave days per month */
 const FREE_LEAVE_CATEGORIES = new Set(["Cook", "Maid"]);
@@ -238,23 +239,18 @@ const computeCandidateShares = ({
 
 // @desc    Get monthly billing summary for a specific provider
 // @route   GET /api/billing/summary/:providerId
-export const getProviderMonthlySummary = async (req, res) => {
+export const getProviderMonthlySummary = async (req, res, next) => {
   try {
     const { providerId } = req.params;
     const { month } = req.query; // Format: YYYY-MM
 
     if (!month) {
-      return res.status(400).json({
-        success: false,
-        message: "Month query param (YYYY-MM) is required",
-      });
+      return next(new AppError("Month query param (YYYY-MM) is required", 400));
     }
 
     const provider = await Provider.findById(providerId);
     if (!provider) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Provider not found" });
+      return next(new AppError("Provider not found", 404));
     }
 
     // 1. Fetch daily logs for the month
@@ -439,21 +435,18 @@ _Generated via Household Billing Tracker_`;
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get dashboard overview for all providers for a month
 // @route   GET /api/billing/overview
-export const getDashboardOverview = async (req, res) => {
+export const getDashboardOverview = async (req, res, next) => {
   try {
     const { month } = req.query; // Format: YYYY-MM
     console.log("month", month);
     if (!month) {
-      return res.status(400).json({
-        success: false,
-        message: "Month query param (YYYY-MM) is required",
-      });
+      return next(new AppError("Month query param (YYYY-MM) is required", 400));
     }
 
     const providers = await Provider.find({ status: "active" }).sort({
@@ -561,7 +554,7 @@ export const getDashboardOverview = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -705,30 +698,21 @@ const buildProviderCandidateSection = async (provider, month, candidate) => {
 
 // @desc    Generate monthly bill for one candidate (one or all providers)
 // @route   GET /api/billing/candidate-bill
-export const getCandidateMonthlyBill = async (req, res) => {
+export const getCandidateMonthlyBill = async (req, res, next) => {
   try {
     const { month, candidateId, providerId } = req.query;
 
     if (!month) {
-      return res.status(400).json({
-        success: false,
-        message: "Month query param (YYYY-MM) is required",
-      });
+      return next(new AppError("Month query param (YYYY-MM) is required", 400));
     }
     if (!candidateId) {
-      return res.status(400).json({
-        success: false,
-        message: "candidateId query param is required",
-      });
+      return next(new AppError("candidateId query param is required", 400));
     }
     console.log("candidateId", candidateId);
     const candidate = await Candidate.findById(candidateId);
     console.log("candidate", candidate);
     if (!candidate || candidate.status !== "active") {
-      return res.status(404).json({
-        success: false,
-        message: "Candidate not found or inactive",
-      });
+      return next(new AppError("Candidate not found or inactive", 404));
     }
 
     let providers;
@@ -736,10 +720,7 @@ export const getCandidateMonthlyBill = async (req, res) => {
       const one = await Provider.findById(providerId);
       console.log("one", one);
       if (!one || one.status !== "active") {
-        return res.status(404).json({
-          success: false,
-          message: "Provider not found or inactive",
-        });
+        return next(new AppError("Provider not found or inactive", 404));
       }
       providers = [one];
     } else {
@@ -831,6 +812,6 @@ _Generated via Household Billing Tracker(Owner: Ankush Saini)_`;
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
